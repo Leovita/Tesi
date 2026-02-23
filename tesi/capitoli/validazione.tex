@@ -1,0 +1,174 @@
+% \chapter{Validazione e studio dello scalabilità dell'infrastruttura}
+% \label{cha:validazioni}
+% \selectlanguage{italian}
+
+% \noindent
+% Questo capitolo presenta il processo di validazione del servizio e ne discute gli aspetti di costo e scalabilità.
+% Si parte dalla metodologia di verifica (inizialmente manuale, poi automatizzata) applicata ai piani generati,
+% con attenzione ai controlli su macronutrienti, vincoli min/max e struttura del pasto. 
+% Segue una validazione funzionale "di realtà", in cui l'algoritmo è testato su maschere e target eterogenei.
+% Nella parte finale si offre un quadro indicativo dei costi operativi (Capitolo ~\ref{sec:costi_indicativi})
+% e si analizza la scalabilità dell'architettura sia lato dati (Supabase) sia lato calcolo asincrono (Cloudflare) 
+% (Capitolo ~\ref{sec:scalabilita_infrastruttura}), evidenziando le leve pratiche per sostenere la crescita del carico.
+% \medskip
+
+% \section{Metodologia di validazione}
+
+% La validazione è stata, per scelta manuale e continua. 
+% Durante tutto lo sviluppo generavo piani alimentari completi e li sottoponevo al dietista sportivo \textit{Federico Gouthier} per una verifica riguardo: coerenza delle quantità, rispetto dei target di \acrshort{cho}, \acrshort{pro} e \acrshort{lip}, presenza di verdura nei pasti principali e, quando previsto, della frutta.
+
+% Se qualcosa non tornava — e a volte capitava, specie nelle prime iterazioni — ci mettevamo a rifare i conti insieme a mano, controllando passaggio per passaggio dove la logica poteva non essere corretta.
+
+% In pratica il ciclo era sempre lo stesso: 
+% \begin{enumerate}
+%   \item generazione del piano con la versione corrente dell'algoritmo;
+%   \item revisione nutrizionale: confronto tra target e valori ottenuti, con attenzione ai margini di tolleranza e ai vincoli min/max;
+%   \item analisi dell'errore (quando presente): ricalcolo manuale dei contributi dei singoli alimenti, verifica degli effetti di arrotondamenti e dei correttivi di tipo \textit{split};
+%   \item correzione del codice e nuova generazione del piano.
+% \end{enumerate}
+
+% Questa modalità manuale ma efficace, ha permesso di intercettare le classi di problemi più frequenti: piccoli scostamenti dovuti agli arrotondamenti, casi in cui i limiti min/max impedivano di raggiungere i target senza aiutarsi con gli \textit{split}, o ancora bilanciamenti alterati dall'obbligo di introdurre verdura e frutta. Ogni volta che trovavamo un punto debole, la logica veniva aggiustata e riprovata in fasce diverse di target macro, finché il comportamento non risultava stabile.
+
+% Successiva a queste validazioni manuali abbiamo ideato una validazione automatica precedentemente descritta per la produzione prima della consegna del piano all'utente: se i macronutrienti finali non rientrano nei range ammessi, il sistema solleva un errore di consistenza e il piano non viene pubblicato. In altre parole, la validazione manuale ha guidato lo sviluppo dell'algoritmo; quella automatica garantisce che lo standard di qualità venga rispettato ogni volta, anche quando non c'è nessuno a guardare.
+
+% \section{Validazione funzionale}
+
+% Questa parte non aggiunge nuove regole: serve a mostrare, in modo pratico, che l'algoritmo genera piani sensati e coerenti quando lo mettiamo "sotto stress" con maschere e target diversi. L'idea è semplice: prendere un set rappresentativo di configurazioni (onnivora/vegetariana/pescitariana; colazione dolce o salata; 3, 4 o 5 pasti; target \acrshort{cho}, \acrshort{pro}, \acrshort{lip} più bassi o più alti) e verificare che l'output rispetti le attese di un pasto reale, non solo i numeri.
+
+% \medskip
+
+% \noindent In concreto, per ogni piano generato abbiamo controllato:
+% \begin{itemize}
+%   \item \emph{coerenza macro per pasto}: i valori di \acrshort{cho}, \acrshort{pro} e \acrshort{lip} rientrano nei margini di tolleranza previsti dal sistema di validazione automatica (già descritto);
+%   \item \emph{somma giornaliera}: la somma dei singoli pasti coincide con i target del giorno (entro le tolleranze);
+%   \item \emph{rispetto dei vincoli min/max}: nessun alimento scende sotto il minimo utile o supera un massimo non ragionevole;
+%   \item \emph{struttura del piatto}: a pranzo e cena è presente la verdura; la frutta compare secondo la logica delle porzioni giornaliere; per ogni pasto esiste una fonte prevalente per ciascun macro (\acrshort{cho}, \acrshort{pro}, \acrshort{lip});
+%   \item \emph{uso degli \textit{split}}: quando servono, gli alimenti correttivi sono mirati e "mono-macro", cioè non alterano inutilmente gli altri nutrienti;
+%   \item \emph{stabilità dell'output}: a parità di input, il risultato è ripetibile; piccole variazioni (es. una diversa maschera o una soglia min/max più stretta) portano a cambi prevedibili.
+% \end{itemize}
+
+% \begin{figure}[H]
+% 	\centering
+% 	\includegraphics[width=1\linewidth]{Images/esempio_debug.jpeg}
+% 	\caption{Fase di debug della generazione di un pasto tramite una query SQL.}
+% 	\label{fig: Fase di debug della generazione di un pasto}
+% \end{figure}
+
+% \medskip
+
+% \noindent Il comportamento osservato è stato in linea con le aspettative: nella grande maggioranza dei casi i piani sono risultati immediatamente validi; i pochi scostamenti rilevati sono stati ricondotti a due cause ricorrenti: arrotondamenti a grammo (che sommandosi in più alimenti possono "spostare" lievemente un macro) e vincoli min/max stringenti che richiedono l'intervento di uno \textit{split}. Entrambi i punti sono stati affrontati regolando la mappa delle tolleranze e rendendo più esplicita la logica di correzione.
+
+% \medskip
+
+% \noindent A titolo di esempio, la Fig.~\ref{fig: Piano generato} mostra un piano completo generato dall'algoritmo. In fase di verifica funzionale, oltre alla lettura "visiva" del pasto (ha senso? è cucinabile?), si rifanno i conti dei macronutrienti con le stesse formule impiegate dal sistema per confermare che:
+% \begin{enumerate}
+%   \item i macro del singolo pasto sono entro i range;
+%   \item la somma giornaliera combacia con i target del giorno;
+%   \item le voci "obbligatorie" (verdura ai pasti principali, frutta quando previsto) sono rispettate senza violare gli altri vincoli.
+% \end{enumerate}
+
+% \medskip
+
+% \noindent In sintesi, questa validazione "di realtà" chiude il cerchio: i controlli automatici impediscono l'invio di piani incoerenti, mentre la verifica funzionale dimostra che l'output è solido anche quando cambia la maschera alimentare, la distribuzione dei pasti o l'intensità dei target. È il tipo di prova che dà fiducia prima della messa in produzione.
+
+% \begin{figure}[H]
+% 	\centering
+% 	\includegraphics[width=1\linewidth]{Images/piano_gouthier.png}
+% 	\caption{Output di un piano generato.}
+% 	\label{fig: Piano generato}
+% \end{figure}
+
+
+% \subsection{Validazione delle alternative}
+% \label{subsec:validazione_alternative}
+
+% Questa sottosezione documenta la \emph{validazione} del meccanismo di alternative. L'idea è semplice: prendiamo un pasto già generato e sostituiamo un alimento con un altro della stessa categoria (esempio classico: pasta \(\rightarrow\) riso). Il sistema ricalcola la nuova porzione e \emph{aggiusta} le altre componenti del piatto in modo coerente, così da restare nei target di \acrshort{cho}, \acrshort{pro} e \acrshort{lip} e dentro i vincoli min/max.
+
+% La verifica che facciamo è pratica:
+% \begin{enumerate}
+%   \item \emph{Controllo dei macro del pasto}: i valori di \acrshort{cho}, \acrshort{pro} e \acrshort{lip} restano entro le tolleranze definite.
+%   \item \emph{Rispetto dei vincoli}: nessuna quantità scende sotto il minimo utile o supera il massimo consentito.
+%   \item \emph{Coerenza della struttura}: le componenti obbligatorie (verdura ai pasti principali, eventuale frutta) restano presenti e sensate.
+%   \item \emph{Correttivi mirati}: se servono piccoli ritocchi finali, interviene la stessa logica di bilanciamento della generazione iniziale (compresi eventuali \textit{split}), evitando alterazioni inutili degli altri nutrienti.
+% \end{enumerate}
+
+
+% \begin{figure}[H]
+%   \centering
+%   \begin{minipage}[t]{0.32\textwidth}
+%     \centering
+%     \includegraphics[width=\linewidth]{Images/alternativa_pre.png}
+%     \par\smallskip\footnotesize Prima del cambio
+%   \end{minipage}\hfill
+%   \begin{minipage}[t]{0.32\textwidth}
+%     \centering
+%     \includegraphics[width=\linewidth]{Images/alternativa_scelta.png}
+%     \par\smallskip\footnotesize Scelta dell'alternativa
+%   \end{minipage}\hfill
+%   \begin{minipage}[t]{0.32\textwidth}
+%     \centering
+%     \includegraphics[width=\linewidth]{Images/alternativa_post.png}
+%     \par\smallskip\footnotesize Dopo il cambio
+%   \end{minipage}
+%   \caption{Flusso di sostituzione di un alimento nel pasto.}
+%   \label{fig:alternative_flow}
+% \end{figure}
+
+% \noindent\footnotesize
+
+% Come si può notare dagli screenshot dell'applicazione, l'utente può scegliere tra una lista d'alimenti compatibili con la sua dieta e con il pasto in questione, in questo caso stiamo lavorando sulla cena, quindi gli alimenti tipici della colazione non verranno mostrati. L'utente ha scelto il \textit{couscous} ed è stato inserito con una grammatura pari a 50\,g in sostituzione del riso basmati. Inoltre è stato ribilanciato il merluzzo passando da 245\,g a 230\,g. Il contatore dei macronutrienti non è variato e non sono stati aggiunti \textit{split}.
+
+% \normalsize
+% \section{Costi: quadro indicativo e sostenibilità}
+% \label{sec:costi_indicativi}
+
+% Di seguito una lettura sintetica ma concreta del profilo costi, utile per capire dove ``pesano'' davvero le scelte architetturali. I valori sono indicativi e riferiti all'intera applicazione circa 50k utenti e circa 5k attivi mensili (\acrshort{mau}).
+
+
+% \subsection{Supabase}
+% Con l'attuale profilo d'uso, l'infrastruttura rientra \emph{comodamente} nel \emph{Pro Plan} di Supabase (\$25/mese) senza avvicinarsi ai limiti principali del piano. Abbiamo utilizzato il 2\% del limite massimo di chiamate Edge Function che ha un tetto massimo di 2M per non andare ad incorrere in ulteriori fatturazioni.
+
+% Il costo del DB non è facilmente quantificabile in quanto il consumo rilevante è dato dal database contenente informazioni ulteriori degli utenti.
+
+
+% \subsection{Cloudflare Workers}
+% \label{subsec:costi_workers}
+
+% Per il calcolo asincrono si utilizza \textit{Cloudflare Workers} sul piano \emph{Standard} a \${5}/mese, che include:
+% \begin{itemize}
+%   \item \emph{10M richieste/mese} incluse (fatturazione a \${0.30} per milione extra);
+%   \item \emph{30M millisecondi CPU/mese} inclusi (\${0.02} per milione extra);
+%   \item nessun costo per \emph{duration}, e limiti di CPU adeguati ai consumer di coda.
+% \end{itemize}
+
+% Con l'attuale carico del generatore (concorrenza 5, job compatti) restiamo \emph{ampiamente} dentro la soglia inclusa: nella pratica il costo ricorrente è il canone base (\${5}).
+
+
+% \section{Scalabilità dell'infrastruttura}
+% \label{sec:scalabilita_infrastruttura}
+
+% L'architettura è nata con un'idea semplice: tutto vive in cloud e deve crescere senza problemi quando aumentano gli utenti e quindi i piani da generare.
+
+% \subsection{Scalabilità lato Supabase}
+% Sul piano dati, la crescita si governa soprattutto in tre modi: 
+% \begin{enumerate}
+%   \item \emph{profilo del database}: se il carico I/O o la memoria diventano stretti, si alza il tier del DB (\textit{vertical scaling}). È la leva più banale ma anche la più efficace nel breve periodo.
+%   \item \emph{pooling e connessioni}: usare il pooling consente di servire più richieste concorrenti senza saturare le connessioni del motore; 
+%   \item \emph{query essenziali e indici corretti}: La vera latenza potrebbe arrivare da query con join abbastanza complicate ed innestate. Indici sulle chiavi esterne, proiezioni ridotte (niente \texttt{SELECT *}).
+% \end{enumerate}
+
+% Le \textit{Edge Functions} si appoggiano all'infrastruttura Supabase e scalano con un modello "a ventaglio": picchi improvvisi vengono assorbiti aumentando le istanze attive, con latenze che restano accettabili finché il collo di bottiglia non diventa il database. Le policy \acrshort{rls} non cambiano comportamento sotto carico: filtrano a livello riga in maniera trasparente, garantendo isolamento dei dati dell'utente anche quando aumenta la concorrenza.
+% \medskip
+
+% \noindent Vale la pena ricordare che l'ecosistema Supabase nasce con un'attenzione esplicita alla scalabilità anche sul fronte delle connessioni: il componente \emph{Supavisor} (pooler multitenant) è stato presentato in test pubblici con oltre \emph{un milione di connessioni} gestite, a riprova della capacità della piattaforma di sostenere scenari di alta concorrenza senza stravolgere l'architettura applicativa~\cite{supavisor_million}.
+
+% \subsection{Scalabilità lato Cloudflare (Workers e Queues)}
+% Il layer di calcolo asincrono è di fatto elastico:
+% \begin{itemize}
+%   \item \emph{Workers} sono stateless e girano all'edge: più traffico significa più istanze in parallelo;
+%   \item \emph{Queues} fanno da cuscinetto tra richieste "in ingresso" e capacità di calcolo: se arriva un'ondata di job, si accumulano in coda e vengono smaltiti secondo la concorrenza impostata (nel nostro caso \emph{batch} piccoli e concorrenza moderata).
+% \end{itemize}
+
+
+% \subsection{Considerazioni pratiche}
+% In pratica, finché i job sono compatti e il database risponde bene, i tempi di attesa rimangono sotto controllo. Se la coda si allunga, si reagisce aumentando la concorrenza del consumer o distribuendo nel tempo i lotti da processare. I costi saranno proporzionali alla richiesta necessaria.

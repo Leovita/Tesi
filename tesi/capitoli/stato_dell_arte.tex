@@ -1,0 +1,73 @@
+% \chapter{Stato dell'arte}
+% \label{cha:stato_dell_arte}
+% \selectlanguage{italian}
+
+% Questo capitolo inquadra il panorama delle soluzioni esistenti per la generazione di piani alimentari personalizzati e ne evidenzia limiti ricorrenti (impostazione calorico–centrica, ridotta personalizzazione sugli ingredienti). 
+
+% Nel Capitolo ~\ref{sec:soluzioni_attuali} si offre una panoramica sintetica di servizi e progetti open source, mettendo in luce approcci e grado di personalizzazione. 
+% Nel Capitolo ~\ref{sec:motivazioni_sviluppo_interno} motiva quindi la scelta di sviluppare un algoritmo proprietario, delineando i benefici in termini di controllo, adattabilità e coerenza con i requisiti applicativi.
+% \medskip
+
+% \section{Soluzioni attualmente presenti nel panorama nutrizionale}
+% \label{sec:soluzioni_attuali}
+
+% Nonostante il crescente interesse per l'alimentazione personalizzata, le soluzioni attualmente disponibili nel panorama nutrizionale si basano ancora, nella quasi totalità dei casi, su un approccio prevalentemente calorico. Questo significa che l'utente finale riceve piani alimentari costruiti sulla base di un fabbisogno espresso in chilocalorie giornaliere, da distribuire in modo più o meno proporzionale tra i vari pasti della giornata.
+
+% In questo scenario, il ruolo dei macronutrienti viene spesso trattato in secondo piano: proteine, carboidrati e grassi (\acrshort{pro}, \acrshort{cho}, \acrshort{lip}) sono sì considerati, ma raramente rappresentano il punto di partenza effettivo del calcolo. La logica più comune è quella che li inserisce "a valle", cioè come conseguenza della ripartizione calorica, piuttosto che come obiettivi da perseguire con precisione.
+
+% Inoltre, i sistemi presenti sul mercato adottano spesso una logica manuale o semi-automatica: l'utente è chiamato a scegliere alimenti da liste predefinite, o riceve combinazioni già strutturate secondo template rigidi. Questo limita fortemente la capacità di adattare i piani alimentari alle reali esigenze nutrizionali o alle preferenze individuali.
+
+% In sintesi:
+% \begin{itemize}
+%     \item prevale una visione calorico-centrica;
+%     \item i macronutrienti non sono usati come driver primari della composizione del pasto;
+%     \item la personalizzazione è limitata e spesso vincolata a strutture fisse;
+%     \item manca un vero motore di calcolo in grado di adattarsi dinamicamente ai parametri dell'utente.
+% \end{itemize}
+
+% Questa situazione ha evidenziato la necessità di un approccio più flessibile, intelligente e strutturato, capace di costruire pasti bilanciati a partire da target nutrizionali precisi e tolleranze definite, anziché affidarsi a logiche statiche o scorciatoie caloriche.
+
+% \vspace{1em}
+% \subsection{Panoramica sintetica di alcune soluzioni esistenti}
+% \label{subsec:panoramica_soluzioni}
+
+% Di seguito una breve descrizione, non esaustiva, di alcuni servizi e progetti oggi disponibili online. L'obiettivo non è il confronto punto-a-punto, ma inquadrare l'approccio prevalente (calorie-centrico e/o macro-centrico) e il livello di automazione.
+
+% \paragraph{Eat This Much~\cite{eatthismuch}}
+% Servizio orientato alla pianificazione calorica: l'utente imposta l'obiettivo in kcal giornaliere e preferenze di base, il sistema propone menù e ricette coerenti con il budget calorico. I macronutrienti sono considerati, ma l'impianto resta guidato dal totale calorico; la generazione è comoda e abbastanza rapida per uso quotidiano.
+
+% \paragraph{Strongr Fastr~\cite{strongrfastr}}
+% Piattaforma che abbina piani di allenamento e alimentazione. La componente nutrizionale tende a fornire piatti pronti per i pasti, con supporto ai macro e funzioni "smart" per la distribuzione. Il focus pratico è sulla fruibilità immediata (ricette pronte), più che su un calcolo fine-grained degli ingredienti.
+
+% \paragraph{My Diet Meal Plan~\cite{mydietmealplan}}
+% Generatore centrato sulle calorie con proposte complete di pasto. L'utente riceve piani già composti, facilmente eseguibili; i macro sono indicati, ma l'accento resta sulla quota calorica e sulla semplicità operativa (meno spazio a dosaggi di singoli ingredienti).
+
+% \paragraph{Prospre~\cite{prospre}}
+% Soluzione che lavora anche con obiettivi di macronutrienti (\acrshort{cho}, \acrshort{pro}, \acrshort{lip}), ma consegna in prevalenza piatti/ricette pronti con dosi suggerite. L'impostazione è pratica e personalizzabile, seppur meno focalizzata sul ricalcolo "di dettaglio" a livello di ingredienti.
+
+% \paragraph{AI Meal Planner (open source)~\cite{ai_meal_planner}}
+% Progetto GitHub che sfrutta modelli di AI per generare piani e ricette. Apprezzabile l'attenzione alla lista ingredienti (non solo piatto finito), ma l'impostazione è in larga parte calorica. Interessante come base sperimentale, specie per chi vuole estendere o integrare la logica con vincoli propri.
+
+
+% %% MOTIVAZIONI INTERNE
+
+% \section{Motivazioni della scelta di sviluppare internamente l'algoritmo}
+% \label{sec:motivazioni_sviluppo_interno}
+
+% Alla luce delle limitazioni evidenziate nelle soluzioni nutrizionali esistenti, si è ritenuto strategicamente opportuno intraprendere un percorso di sviluppo interno di un algoritmo proprietario. Questa scelta non è stata dettata solo da motivazioni tecniche, ma anche da considerazioni più ampie legate al posizionamento e alla crescita aziendale.
+
+% In primo luogo, il controllo diretto sull'algoritmo consente di progettare una logica realmente su misura, che risponda alle esigenze specifiche dell'utenza di riferimento, senza dover mediare con strutture esistenti o piattaforme di terze parti. Ogni vincolo, ogni regola nutrizionale, ogni meccanismo di correzione può essere integrato nativamente, con piena coerenza rispetto agli obiettivi del sistema.
+
+% In secondo luogo, lo sviluppo interno rappresenta un investimento nel know-how aziendale. La proprietà intellettuale del motore algoritmico resta in capo a \emph{Builtdifferent Srl}~\cite{builtdifferent}, generando un valore tangibile in termini di asset digitale e reale vantaggio competitivo sul mercato. Questo approccio permette di evolvere nel tempo la piattaforma, integrando nuove logiche, adattamenti clinici, personalizzazioni verticali, senza dover dipendere da soluzioni esterne o adattarsi a limiti imposti da terzi.
+
+% Infine, l'indipendenza tecnologica consente anche una maggiore agilità nei processi decisionali, una più rapida sperimentazione di funzionalità innovative e una profonda aderenza tra logica algoritmica e visione progettuale. In una parola: coerenza.
+
+% \vspace{0.5em}
+
+% \noindent I vantaggi principali possono essere così riassunti:
+% \begin{itemize}
+%     \item valorizzazione del patrimonio tecnico interno e autonomia nello sviluppo;
+%     \item controllo completo sul comportamento dell'algoritmo e sua evoluzione futura;
+%     \item possibilità di costruire una soluzione verticale, aderente ai bisogni specifici dell'utenza target;
+%     \item generazione di un asset aziendale distintivo, strategico e capitalizzabile nel tempo.
+% \end{itemize}

@@ -1,0 +1,158 @@
+% \chapter{Background}
+% \label{cha:background_iniziale}
+
+% Questo capitolo presenta i concetti fondamentali per comprendere il sistema di "Cucina Generativa" sviluppato. Definiamo innanzitutto cosa si intende per personalizzazione nutrizionale nell'era digitale, descriviamo le tecnologie che rendono possibile questo approccio (dai modelli linguistici avanzati alle moderne architetture informatiche cloud) e illustriamo come si posiziona la nostra soluzione rispetto ad altre già presenti sul mercato. Le nozioni qui introdotte costituiscono il vocabolario tecnico e la base concettuale di riferimento per i capitoli successivi, dedicati all'implementazione concreta del sistema e alla sua validazione.
+
+% \section{Cos'è la "cucina generativa" nel contesto digitale}
+
+% Per \textit{"Cucina Generativa"} intendiamo un approccio innovativo alla creazione di ricette che si affida a modelli di Intelligenza Artificiale per generare, partendo da specifiche richieste, proposte culinarie nuove e personalizzate. La differenza fondamentale rispetto alle app tradizionali sta proprio in questa parola: \textit{generare}. 
+
+% Quando cerchiamo una ricetta su app come MyFitnessPal o su un qualsiasi sito di cucina, stiamo essenzialmente facendo una ricerca in un database: abbiamo un insieme predefinito di ricette e ne selezioniamo una che più o meno si adatta alle nostre esigenze. È come avere una biblioteca di libri di cucina e sfogliarne le pagine fino a trovare qualcosa che ci piace.
+
+% La Cucina Generativa funziona in modo completamente diverso. Non cerca ricette già scritte, ma le \textit{crea da zero} in tempo reale, proprio come farebbe uno chef professionista che, guardando gli ingredienti disponibili in cucina, inventa un piatto sul momento. Questa è la differenza tra un approccio \textit{retrieval-based} (basato sul recupero) e un approccio \textit{generation-based} (basato sulla creazione).
+
+
+
+% \subsection{Il contesto applicativo: dall'ecosistema esistente alla cucina generativa}
+
+% Il sistema di Cucina Generativa non nasce nel vuoto, ma si inserisce come evoluzione naturale di un'applicazione già completa e funzionante per la gestione nutrizionale. L'applicazione esistente si basa su un database proprietario chiamato \textit{Foods}, che contiene informazioni nutrizionali dettagliate per ogni alimento: proteine, grassi, carboidrati, calorie, fibre, presenza di lattosio, categoria merceologica e vincoli di quantità (grammature minime e massime).
+
+% Il flusso utente completo si articola in diverse fasi:
+
+% \textbf{Fase 1 - Creazione del piano nutrizionale}: Un nutrizionista professionista partner dell'applicazione crea un piano alimentare personalizzato per l'utente, definendo i target calorici e la distribuzione di macronutrienti per ogni pasto della giornata.
+
+% \textbf{Fase 2 - Personalizzazione tramite split}: L'utente, ricevuto il piano, può adattarlo alle proprie preferenze e alla disponibilità di ingredienti utilizzando il meccanismo di \textit{split}. Questo sistema permette di sostituire un alimento del piano con uno o più alimenti alternativi che apportano lo stesso valore nutrizionale. 
+
+% Il meccanismo di split si basa su alimenti correttivi scelti per il loro contenuto prevalente in uno specifico macronutriente. Quando si verifica uno scostamento rispetto ai target — ad esempio un eccesso di carboidrati e carenza di proteine — il sistema può aggiungere o sottrarre intelligentemente piccole quantità di questi alimenti per compensare lo squilibrio, mantenendo i vincoli di porzione minima e massima. Questo permette una maggiore flessibilità e garantisce che il pasto rimanga bilanciato anche dopo le modifiche dell'utente.
+
+% \textbf{Fase 3 - Selezione dell'inventario personale}: L'utente seleziona dal database Foods quali ingredienti ha effettivamente a disposizione in casa. Questo inventario personale viene utilizzato come vincolo fondamentale: l'AI potrà utilizzare \textit{solo} questi ingredienti per generare le ricette.
+
+% \textbf{Fase 4 - Generazione creativa della ricetta}: A questo punto entra in gioco la Cucina Generativa. Il sistema riceve:
+% \begin{itemize}
+%     \item Gli ingredienti del pasto dopo lo split, con le grammature precise già calcolate per rispettare i target nutrizionali
+%     \item L'inventario personale dell'utente (quali ingredienti ha in casa)
+%     \item Le preferenze dichiarate (allergie, intolleranze, tipologia di piatto desiderata)
+%     \item Il profilo nutrizionale complessivo dell'utente
+% \end{itemize}
+
+% L'AI non ha il compito di calcolare o modificare i macronutrienti: questi sono già stati definiti correttamente dal nutrizionista e aggiustati dal meccanismo di split. Il compito dell'intelligenza artificiale è \textit{esclusivamente creativo}: prendere quegli ingredienti esatti, con quelle grammature precise, e trasformarli in una ricetta appetitosa, varia e realizzabile.
+
+% % [IMMAGINE SUGGERITA: Diagramma di flusso che mostra le 4 fasi: Piano nutrizionista → Split utente → Inventario → Generazione AI ricetta]
+
+% \subsection{Integrazione con il sistema di split esistente}
+
+% Questa architettura a livelli è fondamentale per capire il valore aggiunto della Cucina Generativa. Il sistema di split esistente rappresenta già un primo livello di flessibilità: se il piano prevede 100g di riso ma l'utente non lo ha a disposizione, può sostituirlo con 80g di pasta o con una combinazione di altri carboidrati equivalenti dal punto di vista calorico.
+
+% Tuttavia, lo split è un'operazione \textit{atomica}: sostituisco un singolo alimento alla volta, mantenendo la struttura del pasto sostanzialmente invariata. Se il mio piano prevede "pollo, riso e zucchine", anche dopo lo split avrò comunque una combinazione simile di proteine, carboidrati e verdure presentati separatamente.
+
+% La cucina generativa porta questo concetto a un livello superiore: invece di sostituire singoli alimenti uno alla volta, permette di \textit{ripensare completamente la presentazione e la combinazione del pasto}, mantenendo comunque il target calorico-nutrizionale già validato. Gli stessi ingredienti post-split possono diventare un'insalata calda, una bowl, una zuppa, delle polpette, un piatto unico al forno infinite possibilità creative che rispettano esattamente i vincoli nutrizionali.
+
+% L'utente passa così da sostituzioni isolate e ripetitive a una vera e propria esperienza culinaria personalizzata e varia, che riduce drasticamente la monotonia alimentare e aumenta l'aderenza al piano nutrizionale nel lungo periodo.
+
+% L'obiettivo principale del sistema è risolvere un problema molto concreto: colmare la distanza tra la teoria nutrizionale e la pratica quotidiana. Da un lato abbiamo i fabbisogni di macronutrienti e calorie prescritti da un nutrizionista o da un piano alimentare; dall'altro abbiamo la domanda di tutti i giorni: "cosa posso cucinare stasera con quello che ho in frigo rimanendo a dieta?". 
+
+% Per rispondere a questa domanda in modo efficace, il sistema deve considerare simultaneamente quattro aspetti fondamentali:
+% \begin{itemize}
+%     \item Il \textbf{profilo calorico-nutrizionale} dell'utente: quante calorie può assumere, qual è la distribuzione di proteine, carboidrati e grassi (già definita dal piano post-split).
+%     \item L'\textbf{inventario degli ingredienti}: cosa ha effettivamente a disposizione nel database Foods, selezionato manualmente dall'utente.
+%     \item Le \textbf{preferenze personali}: che tipo di piatto desidera (un'insalata, una zuppa, un piatto unico), quanto tempo ha per cucinare, quali sapori preferisce.
+%     \item I \textbf{vincoli di sicurezza}: evitare assolutamente di proporre ricette che contengano alimenti dichiarati come allergie o intolleranze nel questionario iniziale dell'utente, per non compromettere lo stato di salute.
+% \end{itemize}
+
+% Questa combinazione di fattori rende la Cucina Generativa particolarmente potente: non si limita a suggerire ricette esistenti che "più o meno" vanno bene, ma crea \textit{ricette su misura} che rispettano perfettamente tutti i vincoli dell'utente, partendo da una base nutrizionale già validata professionalmente.
+
+% % [IMMAGINE SUGGERITA: Infografica che mostra i 4 pilastri del sistema: Profilo nutrizionale, Inventario, Preferenze, Vincoli di sicurezza]
+
+% \section{Confronto con soluzioni esistenti}
+
+% Prima di descrivere le tecnologie alla base del nostro sistema, è utile capire come si posiziona rispetto ad altre soluzioni già disponibili sul mercato. Un esempio significativo è ChefGPT \cite{chefgpt}, un'applicazione che utilizza anch'essa l'intelligenza artificiale per la generazione di ricette.
+
+% \subsection{ChefGPT: caratteristiche e limitazioni}
+
+% ChefGPT è un'app mobile che offre diverse modalità di generazione ricette, tra cui:
+% \begin{itemize}
+%     \item \textbf{PantryChef}: genera ricette basandosi sugli ingredienti che l'utente ha in dispensa
+%     \item \textbf{MasterChef}: raccomanda ricette basate su preferenze alimentari e necessità dietetiche
+%     \item \textbf{MacrosChef}: crea ricette per raggiungere specifici obiettivi di macronutrienti
+%     \item \textbf{MealPlanChef}: genera piani alimentari settimanali personalizzati
+% \end{itemize}
+
+% L'applicazione include anche funzionalità di tracciamento calorico tramite foto dei pasti e gestione dell'inventario della dispensa. Il modello di business prevede un piano gratuito con un numero limitato di generazioni mensili (5-10 ricette) e un piano Pro a \$2.99 al mese con generazioni illimitate.
+
+% % [IMMAGINE SUGGERITA: Screenshot delle diverse modalità di ChefGPT]
+
+% \subsection{Differenze e valore aggiunto della nostra soluzione}
+
+% Nonostante ChefGPT rappresenti un esempio interessante di applicazione dell'AI in ambito culinario, la nostra soluzione si differenzia in alcuni aspetti fondamentali:
+
+% \textbf{Integrazione con professionisti della nutrizione e meccanismi di validazione}: Il nostro sistema è progettato per essere utilizzato in un contesto medico-nutrizionale strutturato, dove un professionista definisce il piano alimentare dell'utente e il meccanismo di split garantisce che ogni modifica mantenga l'equilibrio nutrizionale prescritto. L'AI riceve ingredienti con grammature già validate, riducendo drasticamente il rischio di errori nutrizionali. ChefGPT, invece, è più orientato a utenti che autonomamente impostano i propri obiettivi di macro, senza necessariamente un supporto professionale o un sistema di validazione a monte.
+
+% \textbf{Separazione delle responsabilità}: Nel nostro sistema esiste una chiara divisione dei compiti: il nutrizionista definisce i target, il meccanismo di split garantisce l'equilibrio, l'AI si occupa \textit{esclusivamente} della creatività culinaria utilizzando gli ingredienti e le quantità fornite. In ChefGPT, invece, l'AI deve gestire contemporaneamente sia l'aspetto nutrizionale che quello creativo, aumentando la complessità e la possibilità di errori.
+
+% \textbf{Controllo dei vincoli nutrizionali}: Mentre ChefGPT permette di impostare obiettivi di macronutrienti che l'AI cerca di rispettare in modo approssimativo, il nostro sistema è costruito per utilizzare grammature precise già calcolate. Questo richiede un'architettura di prompt engineering più sofisticata che istruisce esplicitamente il modello a non modificare le quantità, ma solo a combinarle creativamente.
+
+% \textbf{Architettura serverless e scalabilità}: ChefGPT è un'app mobile che probabilmente si appoggia a servizi cloud tradizionali. Il nostro sistema utilizza un'architettura completamente serverless su AWS, che garantisce una scalabilità automatica e costi ottimizzati in base all'utilizzo effettivo.
+
+% \textbf{Sicurezza e privacy dei dati}: Utilizzando AWS Bedrock e l'ecosistema AWS, garantiamo che tutti i dati degli utenti (informazioni sensibili come peso, obiettivi nutrizionali, condizioni di salute) rimangano all'interno di un perimetro di sicurezza certificato e conforme alle normative europee sulla privacy (GDPR) \cite{compliance}.
+
+% \textbf{Flessibilità del modello AI}: Attraverso AWS Bedrock possiamo cambiare il modello linguistico sottostante senza modificare il codice dell'applicazione, permettendoci di adattarci rapidamente all'evoluzione della tecnologia e di scegliere sempre il modello più adatto in termini di costi e prestazioni.
+
+% In sintesi, mentre ChefGPT si rivolge principalmente al mercato consumer con un approccio di self-service generale, il nostro sistema è pensato per integrarsi in un percorso di cura nutrizionale professionale strutturato, dove ogni componente ha un ruolo ben definito: il nutrizionista per la prescrizione, lo split per la personalizzazione nutrizionale, l'AI per la creatività culinaria. Questo garantisce maggiore rigore, sicurezza e affidabilità, pur mantenendo la flessibilità e la varietà che rendono piacevole l'esperienza utente.
+
+% % [IMMAGINE SUGGERITA: Tabella comparativa tra ChefGPT e la nostra soluzione con focus su: validazione nutrizionale, integrazione professionale, architettura, sicurezza dati]
+
+% \section{Personalizzazione nell'era dell'AI: oltre i database statici}
+
+% L'approccio della Cucina Generativa rappresenta un cambio di paradigma significativo rispetto alle soluzioni tradizionali nel mercato del fitness e del benessere digitale. Per capire meglio questo cambiamento, confrontiamo tre approcci diversi alla personalizzazione alimentare:
+
+% \subsection{Approccio tradizionale: database statici}
+
+% App come MyFitnessPal \cite{my_fitness_pal} o Yazio \cite{yazio} si basano su enormi database di alimenti e ricette. Quando cerchiamo "pasta al pomodoro", il sistema cerca nel database tutte le ricette che contengono quelle parole chiave e ci mostra i risultati. 
+
+% I limiti di questo approccio sono evidenti:
+% \begin{itemize}
+%     \item Se la ricetta che cerchiamo non esiste nel database, non la troviamo
+%     \item Non possiamo adattare facilmente una ricetta agli ingredienti che abbiamo
+%     \item La personalizzazione è limitata a filtri predefiniti (vegetariano, senza glutine, ecc.)
+%     \item Non c'è vera creatività: vediamo sempre le stesse ricette popolari
+%     \item La varietà dipende dalla dimensione del database, non dalle possibilità combinatorie degli ingredienti
+% \end{itemize}
+
+% \subsection{Approccio ibrido: raccomandazione intelligente}
+
+% Alcune app più moderne utilizzano tecniche di \textit{machine learning} per raccomandare ricette. Per esempio, analizzano cosa hanno mangiato altri utenti simili a noi (per età, peso, obiettivi) e ci suggeriscono ricette che hanno funzionato per loro. Questo approccio si chiama \textit{collaborative filtering}.
+% È sicuramente meglio di una semplice ricerca, ma ha ancora limiti importanti:
+% \begin{itemize}
+%     \item Funziona bene solo se ci sono molti utenti simili a noi nel database
+%     \item Le raccomandazioni possono essere generiche e non considerare le nostre specificità
+%     \item Non considera gli ingredienti che abbiamo effettivamente a disposizione in quel momento
+%     \item Le ricette sono comunque prese da un database predefinito e statico
+%     \item Soffre del problema del "cold start": utenti nuovi o con profili atipici ricevono raccomandazioni scadenti
+% \end{itemize}
+
+% \subsection{Approccio generativo: creazione dinamica}
+
+% La Cucina Generativa supera entrambi questi approcci creando ricette completamente nuove, su misura per l'utente in quel preciso momento. Il sistema:
+% \begin{itemize}
+%     \item Parte dagli ingredienti \textit{esatti} che l'utente ha selezionato dal database Foods come disponibili in casa tramite funzione split
+%     \item Rispetta le grammature precise già calcolate dal meccanismo di split per garantire l'equilibrio nutrizionale
+%     \item Considera le sue preferenze del momento (voglia di qualcosa di caldo o freddo, veloce o elaborato, preparato con friggitrice ad aria piuttosto che con forno)
+%     \item Rispetta i vincoli di sicurezza (allergie e intolleranze dichiarate)
+%     \item Genera ricette che non esistevano prima, combinando ingredienti in modi nuovi ma gastronomicamente sensati
+% \end{itemize}
+
+% La differenza fondamentale è che il numero di ricette possibili non è più limitato dalla dimensione di un database, ma solo dalla creatività del modello linguistico e dalle combinazioni possibili degli ingredienti disponibili. Con 10 ingredienti diversi ci sono migliaia di possibili ricette valide; con 50 ingredienti le possibilità diventano praticamente infinite.
+
+% Questa evoluzione è resa possibile dalla convergenza di tre fattori tecnologici e sociali:
+
+% \textbf{Maturità dei Large Language Models}: Solo negli ultimi anni (2022-2025) i modelli linguistici hanno raggiunto capacità sufficienti per comprendere davvero le relazioni tra ingredienti e generare ricette coerenti e appetitose. Modelli precedenti producevano spesso combinazioni assurde (gelato con aglio), istruzioni confuse o incomplete, o non rispettavano i vincoli imposti. I modelli moderni come GPT-4, Claude o Nova hanno invece un vero "senso comune culinario".
+
+% \textbf{Accessibilità del cloud serverless}: Tecnologie come AWS Lambda hanno reso possibile costruire applicazioni sofisticate senza enormi investimenti iniziali in infrastruttura. Una startup o una piccola impresa può ora accedere alla stessa potenza computazionale e scalabilità di grandi aziende, pagando solo per l'uso effettivo. Questo abbassa drasticamente la barriera d'ingresso per innovazioni nel settore health-tech.
+
+% \textbf{Domanda crescente di personalizzazione autentica}: Gli utenti oggi, soprattutto nelle generazioni più giovani, si aspettano esperienze su misura in ogni ambito digitale. Non vogliono più soluzioni "taglia unica" o raccomandazioni generiche, ma strumenti che si adattano alle loro esigenze specifiche, ai loro ritmi di vita frenetici, alle loro preferenze in continua evoluzione. La personalizzazione non è più un "nice to have" ma un requisito fondamentale per l'adozione e la retention.
+
+% Il sistema sviluppato in questa tesi dimostra come queste tecnologie possano essere integrate in un'architettura coerente, scalabile e pronta per la produzione. L'obiettivo finale non è semplicemente generare ricette per il gusto della tecnologia, ma risolvere un problema reale e concreto: aiutare le persone ad aderire ai propri piani nutrizionali in modo sostenibile nel lungo periodo.
+
+% La monotonia alimentare è infatti una delle principali cause di abbandono delle diete prescritte \cite{pubmed_diet_monotony}. Mangiare sempre le stesse cose, anche se bilanciate, diventa psicologicamente insostenibile dopo poche settimane. La Cucina Generativa trasforma la preparazione dei pasti da un compito ripetitivo e noioso in un'esperienza coinvolgente, varia e realmente personalizzata, aumentando significativamente le probabilità che l'utente mantenga il comportamento alimentare corretto nel tempo.
+
+% % [IMMAGINE SUGGERITA: Timeline evolutiva degli approcci alla personalizzazione alimentare: anni 2000 (database statici) → anni 2010 (raccomandazione ML) → anni 2020 (generazione AI) con caratteristiche distintive di ogni era]

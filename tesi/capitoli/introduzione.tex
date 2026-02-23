@@ -1,0 +1,36 @@
+% \chapter{Introduzione}
+% \chaptermark{Introduzione}
+% \label{cha:introduzione}
+
+% Negli ultimi anni, il settore del fitness digitale ha assistito a una crescente domanda di personalizzazione nutrizionale. Le tradizionali applicazioni per il tracking alimentare, basate su database statici di ricette, si rivelano spesso inadeguate di fronte alla realtà quotidiana degli utenti: ingredienti disponibili in modo variabile, vincoli di tempo, preferenze di gusto e obiettivi nutrizionali specifici. Questo divario tra teoria dietetica e pratica culinaria rappresenta un limite significativo per l'aderenza ai piani alimentari.
+
+% Questa tesi presenta la progettazione e l'implementazione di un sistema di "Cucina Generativa" che utilizza modelli di Intelligenza Artificiale per trasformare vincoli nutrizionali rigidi e ingredienti disponibili in ricette personalizzate. Il lavoro è stato sviluppato durante il tirocinio presso la startup \emph{Builtdifferent (Blt)} e rappresenta un'evoluzione concreta della loro piattaforma mobile. L'obiettivo principale è superare la rigidità dei piani alimentari statici, introducendo un'agente AI che agisce come uno chef virtuale: non cerca ricette, ma le crea ex-novo, rispettando simultaneamente il profilo calorico dell'utente, la lista precisa degli ingredienti a disposizione e le preferenze di gusto dichiarate.
+
+% Il sistema adotta un'architettura \textit{serverless} su AWS, orchestrando agenti di AI generativa tramite il servizio AWS Bedrock. A differenza di un primo prototipo basato su API pubbliche (OpenAI), la soluzione proposta garantisce privacy dei dati, scalabilità automatica e controllo granulare dei costi. Attraverso tecniche avanzate di \textit{prompt engineering} e un design a pipeline, il sistema fornisce non solo la ricetta generata, ma anche istruzioni passo-passo arricchite con metadati per un'esperienza utente interattiva e coinvolgente.
+
+% \medskip
+% \section{Contributi della tesi}
+% \emph{Contributi.} Il lavoro fornisce i seguenti contributi principali:
+% \begin{itemize}
+%   \item \textit{Validazione del concetto di "Cucina Generativa".} Dimostrazione della fattibilità di utilizzare Large Language Models per creare ricette coerenti e appetitose partendo da vincoli nutrizionali complessi e da un set limitato di ingredienti.
+%   \item \textit{Migrazione da prototipo a architettura enterprise.} Transizione da una soluzione basata su API esterne (OpenAI) a un'architettura nativa AWS (Bedrock + Lambda) che risolve criticità di privacy, scalabilità e costo.
+%   \item \textit{Framework di prompt engineering per il dominio culinario.} Sviluppo di tecniche specifiche per mitigare le "allucinazioni" dell'AI, garantire varietà nelle proposte e assicurare aderenza ai vincoli calorici.
+%   \item \textit{Questionario interattivo e sistema di ricalibrazione dinamica.} Progettazione di un'interfaccia utente intelligente che guida la raccolta del contesto e gestisce automaticamente vincoli nutrizionali complessi.
+%   \item \textit{Analisi costi-benefici e modello economico.} Confronto quantitativo tra diversi modelli LLM (GPT4.0 vs. Claude 3 Haiku vs. Amazon Nova Lite) per guidare la scelta tecnologica verso la sostenibilità economica in un contesto startup.
+%   \item \textit{Considerazioni etiche e di sicurezza integrate.} Approccio "security by design" con policy IAM granulari e analisi proattiva dei rischi di bias algoritmico in un sistema che influenza le scelte alimentari.
+% \end{itemize}
+
+% \section{Struttura della tesi}
+% Il documento è organizzato come un percorso progressivo dalla definizione del problema alla soluzione implementata. Il \textit{Capitolo~\ref{cha:stato_dell_arte}} analizza lo stato dell'arte, inquadrando le soluzioni esistenti nel mercato del fitness digitale e le tecnologie abilitanti (LLM, Serverless Computing), con particolare riferimento alla letteratura scientifica recente sull'IA nella nutrizione personalizzata.
+
+% Il \textit{Capitolo~\ref{cha:analisi_progettazione}} descrive l'analisi dei requisiti e la progettazione, documentando il passaggio dal prototipo iniziale (OpenAI) all'architettura finale su AWS, motivato da esigenze di privacy, scalabilità e controllo dei costi.
+
+% Il cuore implementativo è nel \textit{Capitolo~\ref{cha:implementazione}}, che dettaglia la pipeline serverless, la selezione del modello AI (Amazon Nova Lite) e le sofisticate tecniche di prompt engineering sviluppate per garantire output affidabili, vari e strutturati.
+
+% Il \textit{Capitolo~\ref{cap:analisi-costi}} presenta un'analisi economica rigorosa, modellando i costi operativi per confrontare diverse opzioni di LLM e validare la sostenibilità finanziaria della soluzione proposta.
+
+% Il \textit{Capitolo~\ref{cap:questionario}} entra nel dettaglio dell'esperienza utente, descrivendo l'architettura modulare del questionario interattivo, il suo flusso adattivo e l'innovativo sistema di ricalibrazione dinamica delle verdure.
+
+% Il \textit{Capitolo~\ref{cha:sicurezza_monitoraggio}} affronta gli aspetti di sicurezza, monitoraggio e considerazioni etiche, illustrando l'approccio "security by design", le metriche di performance in ambiente simile alla produzione e le strategie per mitigare il bias algoritmico.
+
+% Infine, le \textit{Conclusioni} (\textit{Capitolo~\ref{cha:conclusioni}}) sintetizzano i risultati, riconoscono i limiti del sistema attuale e delineano le direzioni future, tra cui l'integrazione di knowledge base, l'evoluzione verso sistemi multimodali e l'implementazione di feedback loop per l'apprendimento continuo.

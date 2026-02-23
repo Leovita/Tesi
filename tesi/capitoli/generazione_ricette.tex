@@ -1,0 +1,386 @@
+Ecco il capitolo completamente rifattorizzato, con le strutture JSON spostate nella sezione corretta e le tue risposte integrate. Ho anche corretto i calcoli dei costi che erano invertiti (Nova Lite è effettivamente più economico di Haiku).
+
+\newpage
+\section{Generazione dinamica delle ricette}
+\label{sec:generazione-ricette}
+
+Il modulo di generazione delle ricette rappresenta il pilastro funzionale dell'applicazione, combinando la raccolta strutturata delle preferenze utente con la potenza dei modelli generativi per produrre ricette personalizzate e nutrizionalmente coerenti. Il flusso si articola in due macro-fasi distinte: una fase di compilazione del questionario pre-generazione e una fase generativa vera e propria, orchestrata tramite agenti specializzati.
+
+% -------------------------------------------------------------------
+\subsection{Fase 1: Questionario pre-generazione}
+\label{subsec:questionario}
+
+Prima di invocare qualsiasi modello generativo, l'applicazione guida l'utente attraverso una sequenza di schermate che raccolgono tutte le informazioni contestuali necessarie a vincolare e personalizzare la generazione. Ogni schermata è progettata per essere autonoma e adattiva rispetto al contesto del pasto corrente. L'obiettivo del questionario è quello di trasformare le preferenze astratte e il contesto situazionale dell'utente in vincoli concreti e formalizzati che possano guidare efficacemente il modello generativo, riducendo lo spazio delle possibili ricette e aumentando la probabilità di un risultato soddisfacente.
+
+% -------------------------------------------------------------------
+\subsubsection{Schermata 1: modalità di preparazione}
+\label{subsubsec:modalita}
+
+\begin{figure}[H]
+    \centering
+    \begin{tabular}{cc}
+        \includegraphics[width=0.35\textwidth]{Images/questionario/dieta_salutare.png} & 
+        \includegraphics[width=0.35\textwidth]{Images/questionario/svuota_frigo.png} 
+    \end{tabular}
+    \caption{Schermata di selezione della modalità di preparazione: \textit{Dieta Salutare} o \textit{Svuota Frigo}.}
+    \label{fig:immagini-affiancate}
+\end{figure}
+
+La prima schermata richiede all'utente di scegliere tra due modalità operative fondamentali. La modalità \textbf{Dieta Salutare} vincola la generazione agli ingredienti e alle porzioni esattamente definite dal nutrizionista nel piano alimentare attivo, senza alcun margine di personalizzazione sugli alimenti: l'utente segue alla lettera la prescrizione ricevuta. La modalità \textbf{Svuota Frigo}, invece, concede piena libertà compositiva: l'utente può selezionare fino a due fonti proteiche, due carboidrati e due grassi tra quelli disponibili. In questo caso le quantità non sono fisse ma vengono calcolate dinamicamente da un algoritmo personalizzato a partire dal budget calorico assegnato per ciascun macronutriente.
+
+Il calcolo segue una logica di ripartizione proporzionale basata sui macro-obiettivi del pasto. Per ogni pasto, il piano alimentare definisce quantità target in grammi per proteine, carboidrati e grassi. L'algoritmo converte tali quantità in calorie secondo i coefficienti standard (4 kcal/g per proteine e carboidrati, 9 kcal/g per i lipidi), ottenendo un budget calorico per ciascuna categoria. Quando l'utente seleziona più ingredienti appartenenti alla stessa categoria (ad esempio due diverse fonti di carboidrati), il budget calorico viene suddiviso proporzionalmente tra di essi, indipendentemente dalla loro densità calorica. Le quantità in grammi risultanti vengono arrotondate all'intero più vicino per ragioni di usabilità, garantendo comunque che la somma delle calorie assegnate non superi il budget complessivo.
+
+% -------------------------------------------------------------------
+\subsubsection{Schermata 2: selezione delle verdure}
+\label{subsubsec:verdure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.35\textwidth]{Images/questionario/verdure.png}
+    \caption{Schermata di selezione e suddivisione delle verdure, con ripartizione dinamica delle fibre.}
+    \label{fig:schermata-verdure}
+\end{figure}
+
+Ogni pasto prevede un obiettivo di fibre espresso in grammi. Questa schermata consente all'utente di decidere come suddividere tale quota tra un massimo di quattro verdure differenti. La ripartizione è dinamica: poiché il contenuto di fibre varia sensibilmente tra le diverse verdure a parità di peso, l'interfaccia ricalcola in tempo reale i grammi necessari di ciascuna verdura per raggiungere il target fibroso complessivo, aggiornandosi ad ogni modifica della selezione. Il calcolo in tempo reale è reso possibile dal database aziendale interno che associa a ogni verdura il suo profilo nutrizionale standardizzato. La schermata viene automaticamente saltata quando il pasto corrente è una colazione o uno spuntino, contesti nei quali la componente vegetale non è tipicamente prevista dal piano alimentare.
+
+% -------------------------------------------------------------------
+\subsubsection{Schermata 3: tipo di piatto e numero di porzioni}
+\label{subsubsec:piatto}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.35\textwidth]{Images/questionario/tipo_piatto.png}
+    \caption{Schermata di selezione del tipo di piatto e del numero di porzioni.}
+    \label{fig:schermata-piatto}
+\end{figure}
+
+In questa schermata l'utente determina la struttura compositiva della ricetta. Scegliendo \textbf{Piatto Unico}, tutti gli ingredienti selezionati vengono combinati in un'unica preparazione, forzando il modello generativo a integrare proteine, carboidrati, grassi e verdure in un solo piatto coerente. Scegliendo \textbf{Più Portate}, la ricetta viene invece strutturata in primo, secondo e verdure servite separatamente, offrendo un'esperienza gastronomica più articolata. In entrambi i casi l'utente specifica il numero di porzioni desiderate: le quantità degli ingredienti vengono semplicemente moltiplicate per tale valore, mantenendo invariati i rapporti nutrizionali definiti dal piano.
+
+\subsubsection{Schermata 4: gusto e temperatura}
+\label{subsubsec:gusto}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.35\textwidth]{Images/questionario/gusto_temperatura.png}
+    \caption{Schermata di preferenza sul profilo gustativo e sulla temperatura di servizio.}
+    \label{fig:schermata-gusto}
+\end{figure}
+
+La quarta schermata raccoglie le preferenze organolettiche dell'utente lungo due dimensioni. Il \textbf{profilo gustativo} viene scelto tra: salato, umami, acido, piccante e amaro; tale preferenza orienta il modello nella selezione dei condimenti, delle spezie e delle tecniche di cottura più adatte a sviluppare il sapore desiderato. La \textbf{temperatura di servizio} calda o fredda costituisce un ulteriore vincolo che il modello terrà in considerazione tanto nella scelta della tecnica di preparazione quanto nella composizione finale del piatto.
+
+ 
+\subsubsection{Schermata 5: attrezzatura disponibile}
+\label{subsubsec:attrezzatura}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.35\textwidth]{Images/questionario/attrezzatura.png}
+    \caption{Schermata di selezione dell'attrezzatura da cucina disponibile.}
+    \label{fig:schermata-attrezzatura}
+\end{figure}
+
+La generazione di una ricetta tecnicamente eseguibile dipende dagli strumenti effettivamente a disposizione dell'utente. In questa schermata è possibile indicare quali tra i seguenti elettrodomestici ed attrezzature sono disponibili: fornelli, forno, microonde, wok, griglia o barbecue, vaporiera, pentola a pressione, friggitrice ad aria, frullatore e robot da cucina. Per migliorare l'esperienza utente, all'inizio del questionario viene precaricata la lista di attrezzatura disponibile dalla tabella \textit{user\_preferences} su Supabase.
+
+L'insieme delle attrezzature selezionate vincola direttamente le tecniche di cottura proponibili e influenza la stima calorica finale della ricetta. La stima calorica di base, derivata dagli ingredienti, viene successivamente modificata da un coefficiente moltiplicativo associato a ciascuna tecnica di cottura, definito sulla base di stime empiriche derivate dall'osservazione delle pratiche culinarie comuni. A titolo esemplificativo, alla friggitrice ad aria viene associato un coefficiente di 1.05 per tenere conto del ridotto assorbimento di grassi rispetto alla frittura tradizionale, mentre alla cottura al vapore viene applicato un coefficiente pari a 1.0 in quanto non comporta aggiunta di grassi. Pur trattandosi di una semplificazione, tale approccio fornisce un'approssimazione ragionevole dell'apporto calorico effettivo, adeguata agli scopi dell'applicazione.
+
+% -------------------------------------------------------------------
+\subsubsection{Schermata 6: tempo disponibile}
+\label{subsubsec:tempo}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.35\textwidth]{Images/questionario/tempo.png}
+    \caption{Schermata di selezione del tempo disponibile per la preparazione.}
+    \label{fig:schermata-tempo}
+\end{figure}
+
+L'ultima schermata del questionario raccoglie il tempo che l'utente è disposto a dedicare alla preparazione, selezionabile tra quattro fasce predefinite: 15 minuti, 30 minuti, 1 ora e 2 ore o più. Questo parametro guida il modello nella scelta di tecniche e sequenze di preparazione compatibili con il vincolo temporale dichiarato, evitando di proporre ricette che richiedano marinature prolungate, cotture lente o lavorazioni elaborate quando il tempo a disposizione è ridotto.
+
+% -------------------------------------------------------------------
+\subsection{Fase 2: Generazione delle Ricette tramite Agenti AI}
+\label{subsec:fase-generativa}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.60\textwidth]{Images/flusso_generazione.png}
+    \caption{Schema del flusso generativo: dal questionario alla selezione della ricetta e alla generazione degli step.}
+    \label{fig:flusso-generativo}
+\end{figure}
+
+Al termine della compilazione del questionario, l'applicazione assembla un payload strutturato che integra dati provenienti da due sorgenti distinte: il profilo utente persistente, da cui vengono recuperati la filosofia alimentare dichiarata e la lista degli alimenti esclusi, e il contesto del questionario, che raccoglie tutte le preferenze espresse durante la sessione. Il payload viene inviato tramite una chiamata HTTP all'endpoint esposto da Amazon API Gateway, il quale instrada la richiesta verso la Lambda function \texttt{recipe-generator}. Questa funzione, operante secondo il principio del minimo privilegio come descritto nella sezione dedicata all'infrastruttura, è responsabile dell'invocazione dell'agente generativo appropriato, fornendogli il contesto completo necessario alla generazione.
+
+\subsubsection{Generazione delle Proposte di Ricetta}
+\label{subsubsec:proposte}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.35\textwidth]{Images/questionario/ricette_generate.png}
+    \caption{Schermata di presentazione delle tre proposte di ricetta generate dall'agente.}
+    \label{fig:proposte-ricette}
+\end{figure}
+
+L'agente \texttt{recipe-generator} restituisce sempre tre proposte di ricetta distinte, garantendo all'utente un margine di scelta senza appesantire il flusso con un numero eccessivo di opzioni. Ciascuna proposta include le seguenti informazioni: una stima calorica complessiva, calcolata a partire dal valore di riferimento della dieta e corretta in funzione della tecnica di cottura adottata; il profilo gustativo predominante, tendenzialmente allineato con la preferenza espressa dall'utente nel questionario; l'elenco degli strumenti necessari per la preparazione; la lista completa degli ingredienti con le quantità esatte; infine, i condimenti a zero calorie suggeriti, scelti tra le salse partner dell'applicazione come i prodotti della linea \textit{Prozis} \cite{prozis} oppure tra combinazioni di spezie ed erbe aromatiche selezionate per coerenza con il profilo organolettico della ricetta.
+
+\subsubsection{Generazione degli step di preparazione}
+\label{subsubsec:steps}
+
+\begin{figure}[H]
+    \centering
+    \begin{tabular}{cc}
+        \includegraphics[width=0.35\textwidth]{Images/questionario/step.png} & 
+        \includegraphics[width=0.35\textwidth]{Images/questionario/step2.png} 
+    \end{tabular}
+    \caption{Schermate degli step necessari alla creazione delle ricette}
+    \label{fig:immagini-affiancate-step}
+\end{figure}
+
+Una volta selezionata la ricetta preferita, l'applicazione invia una seconda richiesta all'agente specializzato \texttt{steps-generator}, il quale riceve come input la ricetta scelta e produce una sequenza dettagliata di istruzioni operative. Ogni step è strutturato secondo un formato uniforme che ne massimizza la chiarezza e l'utilizzabilità durante la preparazione effettiva in cucina. A ciascuno step viene associato un tempo stimato, che consente all'applicazione di esporre dei timer dedicati; i timer delle fasi di cottura sono cumulabili, permettendo all'utente di tenere traccia simultaneamente di più cotture parallele. Ogni step riporta inoltre la lista degli ingredienti necessari per quella specifica fase, gli strumenti richiesti e un suggerimento contestuale pensato per agevolare la riuscita della preparazione anche per utenti meno esperti.
+
+% -------------------------------------------------------------------
+\subsection{Feedback e salvataggio della ricetta}
+\label{subsec:feedback}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.35\textwidth]{Images/questionario/feedback.png}
+    \caption{Schermata di feedback al termine della ricetta, con valutazione rapida e opzione di salvataggio ai preferiti.}
+    \label{fig:feedback}
+\end{figure}
+
+Al termine dell'esecuzione della ricetta, l'utente viene indirizzato verso una schermata di feedback progettata per essere rapida e non invasiva. La valutazione avviene tramite un sistema ternario a icone emotive - \textit{sad}, \textit{medium} e \textit{happy} - che consente di raccogliere un segnale qualitativo immediato senza richiedere alcuno sforzo cognitivo significativo. L'utente ha inoltre la possibilità di accompagnare la valutazione con un commento testuale libero. I dati così raccolti costituiscono la base di un sistema di validazione progressiva che, aggregato nel tempo, permetterà di misurare la soddisfazione effettiva degli utenti rispetto alle ricette generate e di orientare futuri miglioramenti del modello e del sistema di prompt. Infine, l'utente può aggiungere la ricetta ai \textbf{preferiti}, rendendola disponibile per una preparazione futura con un accesso diretto, senza dover ripetere l'intero flusso del questionario.
+
+% ===================================================================
+% SEZIONE SPOSTATA: CONFIGURAZIONE AGENTI (con JSON integrati)
+% ===================================================================
+
+\section{Configurazione dettagliata degli agenti per la generazione di ricette}
+
+Dopo aver introdotto le linee guida generali per la configurazione degli agenti basati su modelli linguistici di grandi dimensioni e l'importanza di parametri come la temperatura, è ora possibile addentrarsi nell'analisi approfondita dei due agenti che costituiscono il nucleo del sistema di generazione ricette: l'\textbf{Agente Generatore di Ricette} e l'\textbf{Agente Generatore di Step}. Per ciascuno verranno esaminati il prompt system, le istruzioni, i vincoli, il formato di output e le motivazioni progettuali che ne garantiscono l'efficacia in un contesto applicativo reale.
+
+\subsection{L'Agente Generatore di Ricette}
+
+L'Agente Generatore di Ricette rappresenta il primo livello dell'architettura di generazione. Il suo compito principale è ricevere in input i parametri dell'utente per produrre tre ricette complete che siano al contempo creative, tecnicamente valide e rigorosamente conformi ai vincoli imposti dal contesto fitness.
+
+\subsubsection{Analisi del Prompt System}
+
+Il prompt system definisce il ruolo, il contesto e le regole operative dell'agente attraverso una struttura articolata che ne guida il comportamento. All'agente viene innanzitutto attribuita una doppia identità di "Chef Nutrizionista Specializzato in Cucina Fitness", un accostamento fondamentale per bilanciare la creatività gastronomica con il rigore dietetico. Il contesto viene esplicitato chiarendo che l'utente segue un piano dietetico stretto all'interno di un'app di fitness, il che giustifica la presenza di vincoli stringenti e orienta le scelte creative verso piatti che possano motivare l'aderenza al piano alimentare.
+
+Dal punto di vista operativo, viene imposta una regola categorica: "NON PUOI AGGIUNGERE INGREDIENTI". L'unica flessibilità concessa riguarda spezie, erbe aromatiche e condimenti a zero calorie. Questa restrizione forza l'agente a esprimere la propria creatività attraverso le tecniche di cottura e le combinazioni degli ingredienti esistenti, piuttosto che attraverso l'aggiunta di nuovi componenti. L'agente deve inoltre processare sistematicamente ogni parametro in ingresso: la tipologia di pasto, la dispensa disponibile con quantità tassative, il limite calorico massimo, l'indicazione sulla temperatura di servizio, il profilo gustativo dominante e i metodi di cottura consentiti.
+
+Per i piatti singoli, l'agente deve integrare tutti gli ingredienti in una preparazione coerente e bilanciata dal punto di vista nutrizionale. Un elemento cruciale del prompt è il framework di diversificazione: l'agente deve generare tre ricette radicalmente diverse, ciascuna appartenente a una categoria culinaria distinta (bowl/insalate calde, frittate/polpette, zuppe/vellutate). Questo approccio garantisce varietà all'utente e dimostra la versatilità degli ingredienti di partenza.
+
+La struttura dell'output è definita nei minimi dettagli attraverso un formato JSON vincolato. Il payload inviato all'agente presenta la seguente struttura:
+
+\begin{lstlisting}[language=json]
+{
+"userId": String,
+"questionnaireContext": {
+"diet_type": String,
+"breakfast_type": String,
+"food_excluded": [String],
+"mealCategory": String,
+"mealType": String,
+"cookingEquipment": [String],
+"prepTime": Int | null,
+"taste": [String],
+"temperature": String,
+"portions": Int,
+"calories": Float
+},
+"ingredients": [
+{ "name": String, "quantity": Int, "category": String }
+]
+}
+\end{lstlisting}
+
+L'agente restituisce una lista di ricette candidate, ciascuna corredata di titolo, descrizione, metodo di cottura, tempo di preparazione, ingredienti utilizzati, calorie e condimenti suggeriti. Il campo \texttt{unused} elenca eventuali ingredienti forniti nel contesto ma non utilizzati nella ricetta proposta, aumentando la trasparenza dell'agente:
+
+\begin{lstlisting}[language=json]
+{
+"recipes": [
+{
+"id": Int,
+"title": String,
+"description": String,
+"prep_time": Int,
+"cooking_methods": [String],
+"temperature": String,
+"ingredients": { String: String },
+"calories": Float,
+"tastes": [String],
+"suggested_seasonings": [
+{ "name": String, "quantity": String, "purpose": String }
+],
+"unused": [String]
+}
+]
+}
+\end{lstlisting}
+
+Parallelamente, vengono fornite indicazioni precise sullo stile creativo, suggerendo come rendere i titoli accattivanti e le descrizioni sensoriali attraverso un linguaggio che evochi emozioni e tecniche culinarie. Prima di produrre l'output finale, l'agente deve sottoporre il proprio lavoro a un controllo di qualità mentale, verificando la coerenza e il rispetto di tutti i vincoli attraverso una checklist completa integrata nel prompt. Questo approccio trova solido fondamento nella letteratura sull'ingegneria dei prompt, dove l'inclusione di "checkpoint di verifica" è raccomandata come best practice per prevenire omissioni di passaggi critici e ridurre le allucinazioni del modello, costringendo l'agente a una verifica sistematica che aumenta l'affidabilità complessiva del sistema.
+
+\subsubsection{Considerazioni sulla temperatura e parametri di generazione}
+
+Prima di analizzare la configurazione specifica, è opportuno chiarire brevemente il ruolo dei principali parametri che controllano il comportamento dei modelli linguistici. La temperatura è un parametro che regola il grado di casualità nelle risposte: valori bassi (vicini a 0) rendono il modello più deterministico e ripetitivo, mentre valori più alti (es. 0.8-1.0) aumentano la variabilità e la creatività. Il parametro top-p (o nucleus sampling) opera in sinergia con la temperatura: invece di considerare tutte le parole possibili, il modello seleziona solo l'insieme delle parole la cui probabilità cumulativa raggiunge la soglia p (es. 0.9), limitando la scelta a un nucleo ristretto di opzioni plausibili. Il parametro top-k rappresenta invece un filtro più semplice: il modello considera solo le k parole con probabilità più alta prima di applicare la temperatura.
+
+La configurazione della temperatura per il RicettaAgent richiede un bilanciamento ottimale tra creatività e precisione. Sulla base dei test condotti, il valore di 0.7 permette all'agente di esplorare combinazioni creative, aspetto essenziale per il framework di diversificazione, mantenendo al contempo un sufficiente grado di determinismo per rispettare i vincoli stringenti su ingredienti e calorie. Per quanto riguarda i parametri top-p e top-k, sono stati mantenuti i valori standard del modello (rispettivamente 0.9 e 250).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{Images/settings_recipe_gen.png}
+    \caption{Schermata di configurazione AWS dell'agente BedRock di generazione ricette.}
+    \label{fig:config-recipe}
+\end{figure}
+
+\subsection{L'Agente Generatore di Step}
+
+Lo StepAgent opera a valle del RicettaAgent e svolge una funzione complementare: riceve in input la ricetta appena generata e la trasforma in una sequenza dettagliata di istruzioni passo-passo, arricchite con metadati progettati specificamente per un'interfaccia utente interattiva.
+
+\subsubsection{Analisi del Prompt System}
+
+Il prompt dello StepAgent è interamente incentrato sull'interattività e l'esperienza utente. All'agente viene attribuito il ruolo di "Chef Culinario Interattivo con un'ossessione per i dettagli", dove il termine "interattivo" assume un significato fondamentale: non si tratta semplicemente di generare istruzioni, ma di progettarle per essere visualizzate e utilizzate all'interno di un'applicazione.
+
+La ricetta selezionata dall'utente viene inoltrata allo \textit{Steps Generator Agent} in formato JSON. L'agente produce la sequenza dettagliata dei passi di esecuzione con la seguente struttura:
+
+\begin{lstlisting}[language=json]
+{
+"recipe_title": String,
+"total_time": Int,
+"difficulty": String,
+"equipment_needed": [String],
+"steps": [
+{
+"step_number": Int,
+"step_type": "preparation | cut | cook | assembly",
+"instruction": String,
+"duration_active": Int,
+"duration_total": Int,
+"ingredients_used": [
+{ "name": String, "action": String }
+],
+"tools_used": [String],
+"visual_icon_key": String,
+"tips_and_tricks": [
+{ "tip_type": String, "tip_text": String, "icon_key": String }
+],
+"timers_needed": [String]
+}
+]
+}
+\end{lstlisting}
+
+Ogni step viene classificato per tipologia (preparazione, taglio, cottura, assemblaggio), consentendo all'interfaccia di visualizzare icone e colori differenziati. Particolare attenzione è dedicata alla gestione dei tempi, con la distinzione tra tempo di lavoro attivo e tempo totale, inclusi i periodi di attesa, per permettere all'utente una pianificazione più accurata. Gli ingredienti utilizzati in ogni step vengono dettagliati specificando l'azione da compiere su ciascuno, come tagliare o mescolare. A questo si aggiunge una chiave icona che identifica l'operazione principale dello step, garantendo consistenza visiva attraverso l'interfaccia. Gli array di suggerimenti e trucchi, categorizzati per tipologia come sicurezza, tecnica o sapore, arricchiscono l'esperienza utente con consigli professionali contestuali. Quando uno step richiede un'attesa, viene definito un timer che l'app può avviare automaticamente.
+
+Le regole fondamentali impongono che l'output sia esclusivamente JSON, senza testo aggiuntivo che ne comprometterebbe la parsabilità automatica, e che tutte le stringhe testuali siano in italiano mentre le chiavi icona rimangono in inglese per coerenza con le librerie di icone utilizzate.
+
+\subsubsection{Configurazione della Temperatura per StepAgent}
+
+Per lo StepAgent, la temperatura deve essere configurata in modo significativamente più basso rispetto al RicettaAgent. Il valore adottato di 0.2 minimizza la variabilità nelle istruzioni, garantendo che passaggi tecnici come temperature, tempi e sequenze siano precisi e riproducibili. La logica sottostante è chiara: mentre la creatività è un requisito fondamentale nella generazione della ricetta, nella generazione degli step la priorità assoluta diventa l'accuratezza e la chiarezza.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{Images/settings_stepsgen.png}
+    \caption{Schermata di configurazione AWS dell'agente BedRock di generazione passaggi culinari.}
+    \label{fig:config-steps}
+\end{figure}
+
+\subsection{Configurazione su AWS Bedrock e Analisi dei Costi}
+
+L'implementazione degli agenti su AWS Bedrock richiede una configurazione attenta di diversi parametri. Per entrambi gli agenti, la scelta del modello si è orientata verso Amazon Nova Lite, motivata dalla sua comprensione di istruzioni complesse e strutturate, dalla capacità di seguire formati JSON rigorosi e dal favorevole rapporto tra prestazioni e costo di inferenza.
+
+\subsubsection{Gestione del Contesto e Validazione}
+
+Un aspetto critico nella configurazione su AWS è la gestione della finestra di contesto. Per il RicettaAgent, il prompt system di circa 1500 token sommato all'input utente (mediamente 350 token) deve rientrare nei limiti del modello. Analogamente, per lo StepAgent, la ricetta in input, che può arrivare a 1000 token, si somma al prompt system di circa 1200 token. La scelta di Amazon Nova Lite, con una context window fino a 300.000 token, garantisce margine più che sufficiente per le esigenze attuali e future.
+
+Sul fronte della validazione, la Lambda function \texttt{recipe-generator} implementa un meccanismo di controllo dell'output JSON. Il codice Python verifica la correttezza strutturale della risposta dell'agente; in caso di campi mancanti o valori nulli, la funzione richiama automaticamente l'agente con lo stesso contesto per ottenere un output corretto. Se dopo il secondo tentativo il JSON risulta ancora malformato, viene restituito un errore al front-end, che può gestire la situazione con un messaggio appropriato all'utente. Questo approccio garantisce robustezza senza moltiplicare eccessivamente i costi di inferenza.
+
+\subsubsection{Confronto Pricing e Stime dei Costi}
+
+Per valutare la sostenibilità economica della soluzione, è stato condotto un confronto tra il modello selezionato (Amazon Nova Lite) e un'alternativa comune come Claude 3 Haiku. I prezzi di riferimento, aggiornati a Dicembre 2025, sono riportati in Tabella \ref{tab:pricing}.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|c|c|}
+\hline
+\textbf{Modello} & \textbf{Input (per 1M token)} & \textbf{Output (per 1M token)} \\
+\hline
+Claude 3 Haiku (API) & \$0.25 & \$1.25 \\
+\hline
+Amazon Nova Lite (Bedrock) & \$0.06 & \$0.24 \\
+\hline
+\end{tabular}
+\caption{Pricing modelli AI (Dicembre 2025). Fonte: documentazione ufficiale AWS e Anthropic.}
+\label{tab:pricing}
+\end{table}
+
+Sulla base dei test effettuati, il consumo medio di token per singola generazione è stato stimato come segue:
+\begin{itemize}
+    \item \textbf{Input}: circa 350 token (contesto utente + parametri)
+    \item \textbf{Output}: circa 3.200 token (ricetta completa comprensiva di tutti i campi)
+\end{itemize}
+
+Il costo per singola ricetta con Amazon Nova Lite è quindi:
+
+\begin{equation}
+\text{Costo}_{Nova} = \frac{350 \times 0,06}{1.000.000} + \frac{3.200 \times 0,24}{1.000.000} = 0,000021 + 0,000768 = \$0,000789
+\end{equation}
+
+A titolo di confronto, con Claude 3 Haiku lo stesso volume comporterebbe:
+
+\begin{equation}
+\text{Costo}_{Haiku} = \frac{350 \times 0,25}{1.000.000} + \frac{3.200 \times 1,25}{1.000.000} = 0,0000875 + 0,004 = \$0,0040875
+\end{equation}
+
+Il risparmio per ricetta è quindi di circa \$0,0033, pari a oltre l'80\% di riduzione del costo di inferenza.
+
+\subsubsection{Proiezione Costi Mensili}
+
+Per proiettare i costi su scala mensile, sono stati considerati due scenari di utilizzo: uno scenario conservativo (30 ricette per utente al mese) e uno scenario intensivo (90 ricette per utente al mese). Le tabelle seguenti riportano i costi stimati per Amazon Nova Lite al variare della base utenti.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|c|c|c|}
+\hline
+\textbf{Utenti} & \textbf{Ricette/mese} & \textbf{Costo totale} \\
+\hline
+1.500 & 30/utente & \$35,50 \\
+\hline
+1.700 & 30/utente & \$40,24 \\
+\hline
+2.000 & 30/utente & \$47,34 \\
+\hline
+2.500 & 30/utente & \$59,17 \\
+\hline
+\end{tabular}
+\caption{Costi mensili stimati con Amazon Nova Lite - Scenario conservativo}
+\label{tab:costi-conservativo}
+\end{table}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|c|c|c|}
+\hline
+\textbf{Utenti} & \textbf{Ricette/mese} & \textbf{Costo totale} \\
+\hline
+1.500 & 90/utente & \$106,51 \\
+\hline
+1.700 & 90/utente & \$120,72 \\
+\hline
+2.000 & 90/utente & \$142,02 \\
+\hline
+2.500 & 90/utente & \$177,52 \\
+\hline
+\end{tabular}
+\caption{Costi mensili stimati con Amazon Nova Lite - Scenario intensivo}
+\label{tab:costi-intensivo}
+\end{table}
+
+Anche nello scenario più intensivo, con 2.500 utenti attivi che generano complessivamente 225.000 ricette al mese, il costo rimane ampiamente sostenibile (inferiore a 180 dollari mensili). A questi vanno aggiunti i costi per la generazione degli step, che richiedono un volume di token leggermente superiore (circa 4.500 token in output) ma con la stessa incidenza economica. Anche raddoppiando la stima, i costi mensili si manterrebbero abbordabili per un'applicazione in fase di scaling.
+
+\subsection{Validazione e controllo qualità}
+
+La validazione del sistema non è stata soltanto tecnica, ma ha coinvolto attivamente i professionisti che quotidianamente lavorano con i pazienti dell'applicazione. Durante il periodo di sviluppo, il confronto con il team di nutrizionisti di BuiltDifferent ha permesso di modellare il questionario iniziale in modo che rispondesse fedelmente alle esigenze dichiarate dagli utenti nell'uso quotidiano dell'app. Insieme sono stati analizzati i limiti e le cautele necessarie nell'utilizzo di un modello stocastico per la generazione di ricette, identificando i vincoli indispensabili per garantire risultati affidabili. Al termine del progetto, una valutazione qualitativa condotta su un campione significativo di generazioni ha confermato l'aderenza delle ricette prodotte ai principi della dieta fitness e la loro fattibilità in un contesto domestico.
+
+\subsection{Conclusioni sulla Configurazione}
+
+La configurazione descritta rappresenta un equilibrio ottimale tra creatività e precisione, tra flessibilità e vincoli, tra esperienza utente e affidabilità tecnica. L'utilizzo di due agenti specializzati, ciascuno con il proprio prompt dettagliato e parametri di temperatura calibrati, permette di ottenere ricette creative ma realizzabili, con istruzioni chiare e interattive. L'implementazione su AWS Bedrock con Amazon Nova Lite garantisce scalabilità e affidabilità a costi estremamente contenuti, mentre i meccanismi di validazione - sia a livello di lambda function che di controllo umano - assicurano la qualità dell'output prima della presentazione all'utente finale.
