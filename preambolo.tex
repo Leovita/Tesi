@@ -1,0 +1,67 @@
+% !TeX root = main.tex
+% List of usepackages
+\usepackage{lmodern}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[a4paper]{geometry}
+\usepackage{babel}
+\usepackage{cite}
+\usepackage{notoccite}
+\usepackage{comment}
+\usepackage{setspace}
+\usepackage[unicode=true,bookmarks=true,bookmarksnumbered=false,bookmarksopen=false,breaklinks=false,pdfborder={0 0 0},backref=false,colorlinks=false]{hyperref}
+\usepackage{multicol}
+\usepackage{mathtools}
+\usepackage[format=hang, margin=10pt, font=small]{caption}
+\usepackage[format=hang, margin=10pt, font=small]{subcaption}
+\usepackage{fancyhdr}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{makecell}
+\usepackage{amsmath}
+\usepackage{array}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage[acronym]{glossaries}
+\usepackage{url}
+
+% LyX specific LaTeX commands (DO NOT CHANGE)
+\newcommand{\lyxline}[1][1pt]{
+	\par\noindent
+	\rule[.5ex]{\linewidth}{#1}\par}
+
+% Table settings (DO NOT CHANGE)
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\arraybackslash}p{#1}}
+
+% Page style settings (DO NOT CHANGE)
+\geometry{tmargin=3.5cm,bmargin=2.5cm,lmargin=3.5cm,rmargin=2.5cm}
+\pagestyle{fancy}
+\renewcommand{\chaptermark}[1]{\markboth{#1}{}}
+\renewcommand{\sectionmark}[1]{\markright{\thesection\ #1}}
+\fancyhf{}
+\setlength{\headheight}{14pt}
+\fancyhead[LE,RO]{\bfseries\thepage}
+\fancyhead[RE]{\bfseries\footnotesize\nouppercase{\leftmark}}
+\fancyhead[LO]{\bfseries\footnotesize\nouppercase{\rightmark}}
+\setcounter{secnumdepth}{3}
+\setcounter{tocdepth}{3}
+\raggedbottom
+
+%Custom command
+\input{comandi}  
+
+% Glossary (all acronyms) creation
+\makeglossaries
+% miei
+\newacronym{llm}{LLM}{Large Language Model}
+\newacronym{aws}{AWS}{Amazon Web Services}
+\newacronym{iam}{IAM}{Identity and Access Management}
+% old
+\newacronym{cho}{CHO}{Carboidrati}
+\newacronym{pro}{PRO}{Proteine}
+\newacronym{lip}{LIP}{Lipidi}
+\newacronym{rls}{RLS}{Row-Level Security}
+\newacronym{ia}{IA}{Intelligenza Artificiale}

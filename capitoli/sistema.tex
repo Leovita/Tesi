@@ -1,0 +1,283 @@
+% \chapter{Generazione dinamica di piani alimentari}
+% \label{cha:algoritmo}
+% \selectlanguage{italian}
+
+% Questo capitolo introduce il motore di generazione dei pasti bilanciati guidato da target di macronutrienti. 
+% Si parte dall'idea di \emph{maschera alimentare}, ossia il perimetro degli alimenti ammessi per ciascun pasto, e si descrive come tale perimetro orienti la costruzione del piano. 
+% Nel Capitolo ~\ref{sec:maschere_alimentari} vengono presentate le tipologie di maschere e la composizione minima del pasto; 
+% il Capitolo ~\ref{sec:generazione_piano_alimentare} dettaglia le fasi di calcolo (prefill di frutta/verdura, stima iniziale, vincoli min/max, correzioni e \textit{split}). 
+% Il Capitolo ~\ref{sec:validazione_piano} illustra i controlli automatici sui macronutrienti prima della consegna all’utente, 
+% mentre nel Capitolo ~\ref{sec:alternative_alimenti} descrive il modulo di sostituzione degli alimenti con rigenerazione controllata del pasto.
+% \medskip
+% \section{Introduzione generale}
+% \label{sec:introduzione_generale}
+
+% La composizione automatica di un pasto bilanciato rappresenta una sfida complessa, che richiede di conciliare esigenze nutrizionali, vincoli quantitativi, varietà alimentare e adattabilità individuale. L'obiettivo del sistema sviluppato è proprio questo: generare in modo automatico un pasto personalizzato che rispetti precisi target di macronutrienti (\acrshort{cho}, \acrshort{pro}, \acrshort{lip}) mantenendosi all'interno di range di tolleranza definiti e limiti minimi e massimi per ciascun alimento utilizzato.
+
+% A differenza di molti approcci esistenti — che si limitano a proporre combinazioni predefinite di alimenti o si basano su una distribuzione generica delle calorie — il sistema progettato segue una logica di calcolo algoritmico guidata da vincoli. Ogni pasto viene costruito partendo da un obiettivo quantitativo ben definito (ad esempio: 60g di carboidrati, 25g di proteine, 15g di grassi) e viene progressivamente raffinato fino a ottenere una composizione che soddisfi questi criteri entro margini accettabili.
+
+% La generazione del pasto avviene attraverso un processo a più stadi:
+
+% \begin{itemize}
+%     \item selezione degli alimenti principali da includere nel pasto;
+%     \item stima iniziale delle quantità basata sui vincoli minimi e massimi;
+%     \item analisi degli scostamenti rispetto ai target nutrizionali;
+%     \item riduzione mirata degli eccessi di macro;
+%     \item eventuale integrazione con alimenti correttivi, detti \textit{split}, per colmare le carenze residue.
+% \end{itemize}
+
+% Questa logica multi-step garantisce robustezza, precisione e adattabilità. Ogni alimento è trattato come una variabile soggetta a vincoli, e il sistema opera come un risolutore che cerca la miglior combinazione possibile nel rispetto delle regole imposte.
+
+% Successivamente alla generazione del piano è presente una logica di validazione del piano automatica, in questo modo l'utente riceve un piano alimentare corretto dal punto di vista matematico e nutrizionale.
+
+% Nel corso delle sezioni successive, verranno descritte nel dettaglio le singole fasi che compongono questo processo, con particolare attenzione agli aspetti computazionali, ai criteri decisionali adottati e ai meccanismi di correzione automatica.
+
+% %% GENERAZIONE DEL PIANO ALIMENTARE.
+
+% \section{Maschere alimentari}
+% \label{sec:maschere_alimentari}
+
+% Con \textit{maschera alimentare} intendiamo in pratica  il "vocabolario" di cibi da cui il sistema può attingere per costruire un pasto. Non è un piano già dosato: è uno schema. Elenca gli alimenti ammessi, li raggruppa in modo logico (per categoria e per pasto) e definisce il perimetro degli alimenti da cui l'algoritmo attinge. La maschera dice cosa usare e come abbinarlo; le quantità le calcola poi il motore, rispettando target e vincoli min/max.
+
+% L'idea è semplice: prima si sceglie la maschera, poi si lasciano fare i conti all'algoritmo. Così il sistema resta coerente con le preferenze dell'utente senza dover "indovinare" ogni volta cosa sia pertinente o meno.
+
+% \subsection{Tipologie di maschere}
+% Le maschere riflettono due scelte pratiche, semplici ma molto utili:
+% \begin{enumerate}
+%   \item \emph{Filosofia alimentare}:
+%     \begin{itemize}
+%       \item \textit{onnivora}: include carni, pesci, uova, latticini, legumi, cereali, ecc.;
+%       \item \textit{vegetariana}: esclude la carne e il pesce, mantiene uova e latticini (se previsti), amplia il ruolo di legumi e derivati della soia;
+%       \item \textit{pescetariana}: esclude la carne, mantiene il pesce insieme a uova e latticini (se previsti).
+%     \end{itemize}
+%   \item \emph{Profilo della colazione}:
+%     \begin{itemize}
+%       \item \textit{dolce}: yogurt, latte o bevande vegetali, pane/fette biscottate, miele o marmellata, cereali, frutta, ecc.;
+%       \item \textit{salata}: pane o cereali con uova, formaggi magri, affettati consentiti, hummus, verdure, ecc.
+%     \end{itemize}
+% \end{enumerate}
+% Incrociando queste due scelte si ottengono maschere tipo  \textit{vegetariana salata}, \textit{onnivora dolce}, \textit{pescetariana salata}: ciascuna raccoglie un set di alimenti su cui calcolare.
+
+% In altre parole, la maschera è il modello da cui partire.
+
+% Ogni maschera potrà accedere quindi agli alimenti ad essa compatibili. Immaginando un insieme di alimenti possiamo rappresentare gli alimenti compatibili come sott'insiemi dei cibi onnivori; quindi vien da se che un pescitariano mangia un sott'insieme degli alimenti d'un utente onnivoro e tutti gli cibi di un vegetariano.
+
+% \begin{figure}[H]
+% 	\centering
+% 	\includegraphics[width=0.6\linewidth]{Images/alimenti_maschere.png}
+% 	\caption{Insieme degli alimenti per filosofie alimentari.}
+% 	\label{fig: Alimenti filosie alimentari}
+% \end{figure}
+
+% \subsection{Composizione minima di un pasto}
+% Ogni pasto, nella sua forma più essenziale, è costruito mettendo insieme tre principali:
+% \begin{itemize}
+%   \item una fonte con preponderanza di \emph{carboidrati} (\acrshort{cho}), tipicamente cereali e derivati;
+%   \item una fonte \emph{proteica} (\acrshort{pro}), di origine animale o vegetale a seconda dei casi;
+%   \item una fonte di \emph{grassi} (\acrshort{lip}), spesso condimenti o frutta secca.
+% \end{itemize}
+% A questa struttura si sommano le \emph{verdure} (da prevedere con costanza a pranzo e cena) e la \emph{frutta} sempre presente nella giornata alimentare almeno in 1-2 porzioni al giorno. La maschera non impone le dosi: indica \emph{che cosa} si può usare, l'algoritmo decide \emph{quanto}.
+
+% \subsection{Esempio pratico: vegetariana salata}
+% Prendiamo una maschera \textit{vegetariana salata}. Alla voce "Lunedì – colazione" potrebbero comparire tre scelte molto semplici: \emph{soia edamame (surgelata)}, \emph{semi vari} (girasole, sesamo, chia) e \emph{panini all'olio}. Non ci sono porzioni predefinite ma solo gli alimenti da utilizzare per quel pasto.
+
+% La logica è questa: i \emph{panini all'olio} coprono la parte prevalente di \acrshort{cho} (cereali), con una piccola quota di \acrshort{lip} dovuta al condimento; la \emph{soia edamame} è la nostra fonte principale di \acrshort{pro} (con un po' di \acrshort{cho} di contorno); i \emph{semi vari} sono la fonte dominante di \acrshort{lip}, con un contributo proteico non trascurabile ma secondario. 
+
+% \section{Generazione del piano alimentare}
+% \label{sec:generazione_piano_alimentare}
+
+% La generazione automatica di un piano alimentare personalizzato rappresenta il cuore funzionale del sistema sviluppato. In questa fase, l'algoritmo si occupa di determinare in modo dinamico e coerente le quantità degli alimenti che compongono il pasto a partire dalla maschera, in modo da raggiungere specifici obiettivi nutrizionali. Il tutto avviene nel rispetto di vincoli quantitativi (minimi e massimi per ogni alimento), di margini di tolleranza per i macronutrienti e di alcune regole strutturali legate, ad esempio, alla presenza obbligatoria di frutta e verdura.
+
+% L'input di partenza per questa fase è un insieme di informazioni che definiscono:
+% \begin{itemize}
+%     \item i valori target di macronutrienti da raggiungere nel pasto (espressi in grammi per \acrshort{cho}, \acrshort{pro}, \acrshort{lip});
+%     \item un sottoinsieme selezionato di alimenti "principali" tra quelli disponibili, cioè candidati a essere utilizzati nella composizione iniziale;
+%     \item un insieme di vincoli nutrizionali e strutturali, tra cui soglie minime e massime per ogni alimento e parametri di tolleranza per ciascun macronutriente.
+% \end{itemize}
+
+% Il processo di generazione non segue un approccio rigido o completamente deterministico, ma è articolato in più fasi che permettono di:
+% \begin{enumerate}
+%     \item stimare una prima distribuzione dei quantitativi alimentari, sulla base di euristiche e proporzioni;
+%     \item calcolare gli scostamenti rispetto ai target nutrizionali desiderati;
+%     \item intervenire in modo correttivo laddove vi siano eccessi significativi o carenze rispetto ai target;
+%     \item colmare le eventuali discrepanze residue mediante l'introduzione di alimenti correttivi, detti \textit{split}, scelti appositamente per la loro composizione "pura" e la loro funzione di bilanciamento.
+% \end{enumerate}
+
+% Il sistema è concepito per mantenere un equilibrio tra precisione nutrizionale e fattibilità alimentare: il pasto generato deve non solo essere corretto dal punto di vista dei macronutrienti, ma anche coerente con le aspettative qualitative e quantitative di un pasto reale.
+
+% In particolare, la generazione non avviene in un unico passaggio, ma come processo iterativo e "controllato" — capace di adattarsi progressivamente in funzione degli scostamenti rilevati. In questo modo è possibile ottenere una soluzione flessibile, efficace e facilmente scalabile per essere applicata a contesti clinici, sportivi o semplicemente orientati al benessere quotidiano.
+
+% Nel paragrafo successivo verrà descritto nel dettaglio il primo stadio di questo processo: la stima iniziale delle quantità alimentari, che rappresenta il punto di partenza su cui poggia tutta la successiva logica di bilanciamento.
+
+% \subsection{Prefill di frutta e verdura}
+% \label{subsec:prefill_frutta_verdura}
+
+% Prima di stimare le quantità degli alimenti principali, il sistema effettua un inserimento preliminare (\textit{prefill}) di \emph{verdura} e, quando previsto, di \emph{frutta}. Questa scelta ha due scopi pratici: garantire da subito una base di fibra, micronutrienti e volume del pasto, e ridurre il fabbisogno residuo di carboidrati prima della fase di bilanciamento vero e proprio.
+
+% Come buona norma alimentare, la \emph{verdura è sempre presente a pranzo e a cena}. Per uniformare i calcoli, il sistema assume per ciascun pasto una quota standard di carboidrati proveniente dalla verdura (circa \emph{5{,}6 g di \acrshort{cho}}) e, quando inserita, dalla frutta (circa \emph{16{,}5 g di \acrshort{cho}}). A partire da questi valori, viene determinata la quantità in grammi di ciascun alimento, utilizzando le tabelle nutrizionali di riferimento. In altri termini: si parte decidendo "quanti carboidrati voglio che arrivino da verdura e frutta", e da lì si risale alle porzioni.
+
+% Effettuiamo un prefill subito di frutta e verdura perché essendo che viene considerato solo il macronutriente \acrshort{cho}, l'apporto del macronutriente portato dagli elementi inserite verrà fin dall'inizio conteggiato nei calcoli.
+
+% Se, in rari casi, il contributo iniziale di frutta o verdura rendesse più difficile il rispetto dei target, le fasi successive di correzione lavorano sugli altri alimenti del pasto, mantenendo comunque la verdura come elemento stabile della struttura, quindi la presenza di frutta e verdura è sempre garantita.
+
+% \subsection{Stima iniziale degli alimenti principali}
+% \label{subsec:stima_iniziale_alimenti_principali}
+
+% Il primo passo dell'algoritmo \texttt{Gouthier1} è una stima iniziale delle quantità dei cosiddetti alimenti principali, cioè quelli che costituiscono la base del pasto. Questo set include tipicamente fonti di carboidrati complessi (come pasta, pane, riso), fonti proteiche principali (carne, pesce, legumi, uova e formaggi) e contorni come le verdure. L'idea è partire da qualcosa di sensato, che abbia già una forma riconoscibile di pasto, e non da zero o da una distribuzione totalmente casuale.
+
+% L'algoritmo applica una logica euristica: vengono distribuiti i target dei macronutrienti (\acrshort{cho}, \acrshort{pro}, \acrshort{lip}) in proporzione ai profili nutrizionali degli alimenti candidati. Non c'è una formula chiusa o un sistema matematico preciso in questa fase: è più un bilanciamento ragionato, una sorta di "pre-allocazione" di dosi che serve per avvicinarsi ai valori attesi.
+
+% Tecnicamente, per ogni alimento principale selezionato, il sistema calcola una quantità iniziale che dovrebbe contribuire a coprire in parte i target giornalieri. Questo avviene tenendo conto  dei rapporti tra i macronutrienti che del peso minimo e massimo ammissibile per quell'alimento. La somma delle dosi generate non coprirà mai esattamente i target ed è normale così: l'obiettivo è solo fornire una base su cui applicare correzioni successive.
+
+% Un esempio concreto può aiutare: supponiamo che il target proteico sia 30g e che nella lista degli alimenti principali ci siano 100g di petto di pollo (che fornisce circa 23g di \acrshort{pro} per 100g) e 100g di pasta (che ne fornisce circa 5g). In una prima stima, il pollo riceverà un quantitativo maggiore perché ha una densità proteica superiore, ma l'algoritmo proverà comunque a usare anche l'altro alimento in misura compatibile. Il risultato sarà una combinazione che si avvicina, ma non coincide, con il fabbisogno.
+
+% Va detto che questa fase iniziale è volutamente imprecisa: serve più a "dare una forma" al pasto che a rispettare in modo rigoroso i valori. Sarà poi il sistema, nelle fasi successive, a compensare gli eccessi o le carenze tramite un meccanismo di correzione iterativa e, se necessario, con l'inserimento degli alimenti \textit{split}.
+
+
+% %% MIN E MAX
+
+% \subsection{Gestione dei vincoli minimi e massimi}
+% \label{subsec:vincoli_min_max}
+
+% Uno degli aspetti fondamentali del funzionamento dell'algoritmo \texttt{Gouthier1} riguarda la gestione dei vincoli minimi e massimi per ciascun alimento. Questo passaggio è cruciale per garantire che il piano generato non sia solo bilanciato sul piano nutrizionale, ma anche concretamente attuabile, realistico e rispettoso di eventuali limiti pratici o clinici imposti sull'uso di alcuni ingredienti.
+
+% In fase di input, ogni alimento può essere descritto attraverso:
+% \begin{itemize}
+%     \item un valore minimo (\texttt{min\_g}) espresso in grammi, che rappresenta la soglia sotto la quale l'alimento non dovrebbe scendere per ragioni nutrizionali, di appetibilità o tecniche;
+%     \item un valore massimo (\texttt{max\_g}) che rappresenta la quantità limite per non eccedere nel consumo di quel dato alimento, ad esempio per motivi calorici, di saturazione, o tolleranze individuali.
+% \end{itemize}.
+
+
+% Per esempio è impensabile di mangiare 1000gr di pasta a pasto o 10gr di riso, per questo l'algoritmo interverebbe con massimo e minimo.
+
+% Nel ciclo di calcolo, questi vincoli vengono tenuti in considerazione fin dal primo tentativo di generazione. In particolare, il motore algoritmico costruisce una prima stima di piano cercando di raggiungere i target di \acrshort{cho}, \acrshort{pro} e \acrshort{lip}, ma già verificando che nessun alimento sfori i limiti dichiarati.
+
+% Quando il sistema si accorge che, per raggiungere l'obiettivo di un certo macronutriente, dovrebbe utilizzare una quantità superiore al \texttt{max\_g} di un certo alimento, l'algoritmo interviene interrompendo la crescita e segnando il problema come "vincolo violato". In questa fase entra in gioco la logica di compensazione, di cui parleremo più avanti.
+
+% Dall'altro lato, se al termine del calcolo un alimento resta al di sotto del suo \texttt{min\_g}, ma non è stato necessario per il bilanciamento complessivo, il sistema può:
+% \begin{itemize}
+%     \item in alcuni casi, forzare il suo inserimento per ragioni di struttura del pasto (es. verdure obbligatorie);
+%     \item oppure, segnalarlo come "non incluso" e passare alla fase successiva senza inserirlo.
+% \end{itemize}
+
+% Questa gestione flessibile ma vincolata è uno degli elementi chiave dell'approccio adottato: si cerca di mantenere il massimo equilibrio tra rispetto dei fabbisogni nutrizionali, aderenza ai vincoli pratici, ed efficacia algoritmica. Il sistema non forza mai un alimento "oltre" il suo massimo, e al tempo stesso non considera "obbligatori" quelli non utili al piano, se non specificato esplicitamente.
+
+% Questa logica si traduce anche in un vantaggio per l'utente finale: i pasti risultano più credibili, cucinabili e coerenti con il proprio regime alimentare, evitando soluzioni estreme, squilibri o composizioni forzate.
+
+% %% GESTIONE ECCESSI 
+
+% \subsection{Gestione degli eccessi e correzione del piano}
+% \label{subsec:overrange_macro}
+
+% Dopo la generazione iniziale del piano, l'algoritmo \texttt{Gouthier1} verifica se i valori finali di macronutrienti (\acrshort{cho}, \acrshort{pro}, \acrshort{lip}) rientrano nei range di tolleranza prefissati. Questi range non sono rigidi, ma prevedono una certa flessibilità: ad esempio, un eccesso del 5--10\% può essere accettato in fase finale, soprattutto se funzionale al rispetto dei vincoli min/max o alla composizione generale del pasto.
+
+% Tuttavia, quando uno o più macronutrienti risultano significativamente sopra il target, il sistema entra in modalità "correzione", attivando una logica di sottrazione controllata che cerca di rientrare nei limiti. In questa fase, l'algoritmo:
+
+% \begin{itemize}
+%     \item identifica quali alimenti contribuiscono maggiormente all'eccesso del macronutriente in questione;
+%     \item ordina questi alimenti in base all'impatto relativo sul macronutriente eccedente;
+%     \item tenta di ridurne la quantità, partendo dai più impattanti e restando sempre sopra il \texttt{min\_g}.
+% \end{itemize}
+
+% Un elemento interessante di questa fase è che il sistema può ritentare più cicli di riduzione in modo iterativo, ma si ferma non appena:
+% \begin{itemize}
+%     \item il target rientra nei margini di tolleranza accettati;
+%     \item o ogni riduzione ulteriore violerebbe i vincoli minimi.
+% \end{itemize}
+
+% Se, anche dopo questi tentativi, l'eccesso persiste, l'algoritmo considera il piano "non correggibile" con le sole risorse disponibili e attiva una fase successiva chiamata "compensazione con alimenti split" (che vedremo nella prossima sezione).
+
+% Questa parte del flusso mostra bene come \texttt{Gouthier1} non si limiti a generare un output, ma cerchi attivamente di rispettare i target assegnati attraverso un ciclo continuo di aggiustamenti, riduzioni e controlli. È una logica di feedback interno che punta a trovare un equilibrio reale e non solo teorico.
+
+% Anche se può sembrare un dettaglio tecnico, questa componente rende l'algoritmo più affidabile, soprattutto quando si lavora in ambiti dove precisione e personalizzazione sono fondamentali (es. ambito clinico o sportivo).
+
+% \subsection{Introduzione al meccanismo di Split}
+% \label{subsec:split_intro}
+
+% Nel cuore dell'algoritmo \texttt{Gouthier1}, il meccanismo di \textit{split} rappresenta una soluzione strategica per bilanciare il piano alimentare quando — dopo l'assegnazione delle quantità minime e massime per ciascun alimento — i target dei macronutrienti non risultano ancora pienamente rispettati.
+
+% È importante chiarire il contesto: nella prima fase, l'algoritmo tenta di comporre il pasto partendo dagli alimenti principali, cercando un equilibrio tra fabbisogno e limiti quantitativi. Tuttavia, questo equilibrio non è sempre perfetto. I vincoli min/max possono costringere il sistema ad accettare delle deviazioni parziali rispetto ai valori target di \acrshort{cho}, \acrshort{pro} e \acrshort{lip}. Ad esempio, un alimento ricco di carboidrati potrebbe già essere stato portato alla quantità minima consentita — e ridurlo ulteriormente per rientrare nei limiti di \acrshort{cho} non è più possibile.
+
+% Ed è qui che interviene il meccanismo di \textit{Split food}: uno step dedicato all'aggiunta selettiva di uno o più alimenti "correttivi", ciascuno dei quali ha un impatto quasi esclusivo su un solo macronutriente. La loro funzione è compensativa: colmare gli ultimi buchi di bilanciamento in modo preciso, senza alterare il resto della composizione.
+
+% Esempi tipici di split includono:
+% \begin{itemize}
+%     \item \emph{olio extravergine} per compensare grassi (\acrshort{lip});
+%     \item \emph{albume} per aumentare le proteine (\acrshort{pro});
+%     \item \emph{gallette di mais} per aggiungere carboidrati (\acrshort{cho}).
+% \end{itemize}
+
+% A differenza di altri sistemi, questa logica è completamente automatica e inserita all'interno del ciclo di correzione. Il piano alimentare finale, quindi, è il risultato non solo della distribuzione iniziale degli alimenti principali, ma anche di questi micro-interventi finalizzati a raggiungere con maggiore precisione i target.
+
+% La presenza dello \textit{split} rende l'intero algoritmo più robusto, realistico e vicino all'approccio umano: non sempre è possibile costruire un pasto perfetto in un colpo solo, ma è possibile intervenire a posteriori per sistemare gli ultimi dettagli — proprio come farebbe un dietista sportivo esperto.
+
+% \begin{figure}[H]
+% 	\centering
+% 	\includegraphics[width=0.4\linewidth]{Images/flow_gouthier1.png}
+% 	\caption{Flusso di generazione di un nuovo piano alimentare.}
+% 	\label{fig: Flusso di calcolo dell'algoritmo}
+% \end{figure}
+
+% %% VALIDAZIONE
+
+% \section{Validazione del piano nutrizionale}
+% \label{sec:validazione_piano}
+
+% Prima che un piano venga mostrato all'utente, il sistema effettua una validazione esplicita. L'idea è semplice: non ci fidiamo ciecamente della sola fase di calcolo; ricostruiamo i macronutrienti del pasto così come verrebbero realmente consumati e li confrontiamo con i target previsti per quel pasto. Solo se tutto rientra nelle soglie di accettabilità, il piano passa allo stadio successivo.
+
+% \subsection{Cosa viene controllato}
+% La validazione opera \emph{per pasto} e riguarda i tre macronutrienti principali: carboidrati (\acrshort{cho}), proteine (\acrshort{pro}), lipidi (\acrshort{lip}). Per ogni pasto si sommano i contributi dei cibi presenti, tenendo conto di due regole pratiche:
+% \begin{itemize}
+%   \item gli \emph{alimenti ``split''} contribuiscono quasi esclusivamente al macronutriente per cui sono stati selezionati (servono proprio a rifinire quel singolo valore);
+%   \item \emph{frutta e verdura} vengono considerate con un impatto mirato sui carboidrati.
+% \end{itemize}
+
+% Il risultato è una terna di valori \acrshort{cho}/\acrshort{pro}/\acrshort{lip} effettivamente "ricostruiti" a partire dagli alimenti del pasto.
+
+% \subsection{Criteri di accettazione}
+
+% Il confronto con i target non è binario, ma usa delle \emph{finestre di tolleranza} proporzionate all'ordine di grandezza del target stesso. In pratica:
+% \begin{itemize}
+%   \item per \emph{quote molto piccole} (pochi grammi) la tolleranza è più ampia: ha poco senso essere rigidi quando i numeri sono piccoli e il peso dell'arrotondamento è alto;
+%   \item man mano che il \emph{target cresce}, la finestra si \emph{stringe}: su quantità importanti vogliamo precisione maggiore;
+%   \item oltre una certa soglia si converge verso una \emph{tolleranza standard} (circa dell'ordine del dieci per cento), sufficiente a garantire coerenza senza inseguire cifre irrealistiche.
+% \end{itemize}
+% Se anche uno solo dei tre macronutrienti esce dal proprio range, il pasto viene segnato come non valido.
+
+% \subsection{Esito della validazione}
+% Quando un pasto non rientra nei limiti, il sistema solleva un \emph{errore di macronutriente fuori range}. In termini pratici:
+% \begin{enumerate}
+%   \item il problema viene tracciato (telemetria e log operativi);
+%   \item il piano non viene esposto all'utente finché non viene ricalcolato o corretto;
+%   \item se necessario, si può riattivare la fase di calcolo (con nuovi split o piccoli aggiustamenti) ma manualmente.
+% \end{enumerate}
+% Il dietista sportivo comunque può verificare il piano generato per controllare dov'è sono stati problemi di generazione.
+
+% %% GESTIONE DELLE ALTERNATIVE
+
+% \section{Gestione delle alternative alimentari}
+% \label{sec:alternative_alimenti}
+
+% Una volta generato il pasto, può capitare che l'utente voglia sostituire un alimento con un altro più vicino ai propri gusti o alle disponibilità del momento. L'idea è semplice: cambiare un ingrediente mantenendo intatto l'equilibrio nutrizionale del pasto. In pratica però la sostituzione non è mai uno ad uno: serve ricalcolare le quantità in modo coerente con i target di \acrshort{cho}, \acrshort{pro} e \acrshort{lip}, e rispettare i vincoli minimi e massimi dei singoli alimenti.
+
+% Il flusso è questo, in modo molto concreto:
+% \begin{enumerate}
+%     \item \emph{Scelta dell'alimento da sostituire.} L'utente seleziona un alimento del pasto.
+%     \item \emph{Selezione delle alternative.} Il sistema propone solo alimenti della \emph{stessa categoria primaria} (ad esempio, un carboidrato al posto di un altro carboidrato; un'alimento proteico al posto di un'altro), compatibili con il contesto del pasto e con l'eventuale regime alimentare.
+%     \item \emph{Rigenerazione del pasto.} Per ciascuna alternativa, il pasto viene \emph{rigenerato} ricalcolando le quantità di tutti gli alimenti coinvolti. Non ci si limita a sostituire i grammi "in pari": si ribilancia l'intero piatto per rientrare nei target di macronutrienti, tenendo conto dei margini di tolleranza.
+%     \item \emph{Rispetto dei vincoli.} Ogni proposta viene validata rispetto ai limiti minimi e massimi per alimento. Se una sostituzione richiedesse quantità non realistiche (troppo alte o troppo basse), viene scartata.
+%     \item \emph{Presentazione del risultato.} All'utente viene mostrato un elenco di opzioni \emph{ammissibili}, ciascuna con la porzione suggerita. L'elenco può essere esplorato (ricerca testuale) e ordinato (ad esempio alfabetico o per quantità).
+% \end{enumerate}
+
+% \subsection{Perché rigenerare tutto il pasto?}
+% Perché cambiando un singolo ingrediente cambia anche la distribuzione dei macronutrienti. Un riso integrale, un pane di segale o un diverso taglio di carne hanno profili nutrizionali diversi dall'alimento originale. Rigenerare il pasto consente di:
+% \begin{itemize}
+%     \item mantenere l'allineamento ai target di \acrshort{cho}, \acrshort{pro}, \acrshort{lip} senza sforamenti;
+%     \item rispettare minimi e massimi sugli alimenti, evitando porzioni "impossibili";
+%     \item preservare, se già presenti, eventuali correzioni finali (\textit{split}) per colmare piccoli scostamenti.
+% \end{itemize}
+
+% \subsection{Nota su frutta e verdura.}
+% Le sostituzioni rispettano la struttura del pasto: la verdura resta presente nei pasti principali come buona norma alimentare, mentre la frutta segue le regole di distribuzione previste a livello di giornata. Quando si sostituisce un contorno di verdure con un altro della stessa categoria, la quantità viene ricalibrata per mantenere la coerenza con la quota standard prevista per il pasto.
+
+% In sintesi, il meccanismo delle alternative non è un semplice "cambio etichetta", ma un \emph{ricalcolo controllato} dell'intero pasto attorno a una nuova scelta. Questo mantiene qualità nutrizionale, realismo delle porzioni e flessibilità d'uso — tre aspetti che insieme rendono la sostituzione davvero praticabile nella vita di tutti i giorni.
